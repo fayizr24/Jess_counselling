@@ -503,7 +503,7 @@ img{max-width:100%}
 }
 
 /* Additional space below the About eyebrow. */
-.about-intro>.eyebrow{margin-bottom:16px}
+.about-intro>.eyebrow{margin-bottom:12px}
 
 /* Services decoration sits behind the copy at every viewport width. */
 .services-intro{isolation:isolate}
@@ -526,4 +526,46 @@ img{max-width:100%}
 }
 @media(max-width:600px){
   .page-contact .callback>label{grid-template-rows:auto auto 44px;gap:2px}
+}
+
+/* Approved Logo Final, with editable supporting text. Existing hidden footer branding stays hidden. */
+.jess-final{position:relative;width:100%;aspect-ratio:2048/692;container-type:inline-size}
+.site-header .brand .jess-final-art,.site-footer .footer-brand .jess-final-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;clip-path:polygon(0 0,100% 0,100% 60%,85% 60%,85% 57%,33% 57%,33% 100%,0 100%)}
+.jess-final-copy{position:absolute;left:32.85%;right:6.7%;top:57%;text-align:center;color:#a77924;font-family:Georgia,'Times New Roman',serif}
+.jess-final-service-row{display:flex;align-items:center;gap:1cqw;white-space:nowrap}
+.jess-final-service-row::before,.jess-final-service-row::after{content:'';height:.2cqw;min-height:1px;background:#b3822a;flex:1}
+.site-header .brand .jess-final-service,.site-footer .footer-brand .jess-final-service{display:block;flex:none;width:auto;max-width:none;margin:0;font-size:calc(3.15cqw + 1pt);font-weight:700;line-height:1.12}
+.jess-final-language{margin:1.15cqw 0 0;font-size:calc(2.7cqw + 2pt);line-height:1.2;font-style:italic;color:#124a32;font-weight:400;white-space:nowrap}
+
+.site-header .brand{width:36%;max-width:360px;flex-shrink:0}
+.site-footer .footer-brand{width:100%;max-width:260px;justify-self:center}
+@media(max-width:1100px) and (min-width:901px){.site-header .brand{max-width:310px}}
+@media(max-width:900px){.site-header .brand{width:100%;max-width:330px}.site-footer .footer-brand{max-width:260px}}
+@media(max-width:600px){.site-header .brand{width:100%;max-width:300px;min-height:0;justify-self:center}.site-header .brand .jess-final-art{transform:none}.site-footer>.footer-brand{display:none}}
+
+/* Mobile: place the complete logo and consultation button on the page centre line. */
+@media(max-width:600px){
+  .site-header{grid-template-columns:minmax(0,1fr)}
+  .site-header .brand{grid-column:1;justify-self:center;margin-inline:auto;width:min(100%,300px)}
+  .site-header .brand .jess-final{margin-inline:auto}
+  .site-header .header-button{grid-column:1;justify-self:center;margin-inline:auto}
+}
+
+/* Mobile: centre the text column on the page, retaining the symbol to its left. */
+@media(max-width:600px){
+  .site-header .brand .jess-final{transform:translateX(-13.075%)}
+}
+@media(max-width:360px){
+  .site-header .brand{width:min(100%,270px)}
+}
+
+/* Home graphics: retain the artwork and adjust its position only. */
+.page-home .home-scene .story-script{transform:translateX(12px)}
+@media(max-width:600px){
+  .page-home .home-scene>img:first-child{object-position:left center}
+}
+
+/* Mobile-only: move Your Story Matters farther right, preserving the graphic. */
+@media(max-width:600px){
+  .page-home .home-scene .story-script{left:50%}
 }
