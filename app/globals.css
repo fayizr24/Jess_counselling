@@ -448,3 +448,82 @@ img{max-width:100%}
 
 /* One full line of breathing room below the approved Home headline */
 .home-copy h1{margin-bottom:28px}
+
+/* Counselling disclaimer and shared footer link */
+.footer-contact>span{display:flex;flex-direction:column;gap:9px;min-width:0}
+.footer-disclaimer{font:inherit;font-weight:400;color:inherit;text-decoration:underline;text-underline-offset:2px;margin-left:10px;white-space:nowrap}
+.footer-disclaimer:hover{color:var(--navy)}
+.footer-contact a:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+.disclaimer-content{padding:48px max(6%,calc((100% - 1000px)/2)) 60px;background:linear-gradient(115deg,#fffef7,#f4f7e8);color:var(--navy)}
+.disclaimer-content h1{font-size:42px;line-height:1.15;margin:0 0 24px;color:var(--green)}
+.disclaimer-content h2{font-size:26px;line-height:1.3;margin:0 0 16px;color:var(--green)}
+.disclaimer-content p{font-family:Arial,sans-serif;font-size:17px;line-height:1.8;margin:0 0 20px}
+.disclaimer-content section{border-top:1px solid #cedbcb;margin-top:32px;padding-top:28px}
+.disclaimer-content p:last-child{margin-bottom:0}
+@media(max-width:600px){.disclaimer-content{padding:32px 7% 40px}.disclaimer-content h1{font-size:32px}.disclaimer-content h2{font-size:23px}.disclaimer-content p{font-size:16px;line-height:1.75}}
+
+.footer-copy{display:flex;justify-content:center;align-items:baseline;white-space:nowrap}
+@media(max-width:600px){.footer-copy{font-size:clamp(8px,2.35vw,11px)}.footer-disclaimer{margin-left:7px}}
+
+.footer-company span{line-height:1.45}.footer-company small{display:inline-block;font-size:13px;line-height:1.4;margin-top:4px}
+
+/* Responsive refinements limited to the new footer and disclaimer content. */
+.footer-company{min-width:0}
+.footer-company>span{min-width:0;overflow-wrap:normal}
+@media(max-width:1100px){
+  .footer-company small{font-size:14px;line-height:1.5}
+  .disclaimer-content{padding-left:6%;padding-right:6%}
+}
+@media(max-width:900px){
+  .footer-copy{position:static;grid-column:1/-1;margin-top:4px;white-space:normal;flex-wrap:wrap;gap:6px 10px;line-height:1.6;font-size:11px}
+  .footer-disclaimer{margin-left:0}
+  .footer-company{align-items:center}
+  .footer-company>span{max-width:100%}
+  .disclaimer-content h1{font-size:36px}
+}
+@media(max-width:600px){
+  .footer-copy{font-size:11px;max-width:100%;white-space:normal}
+  .footer-company{gap:14px}
+  .footer-company>svg{width:28px;height:28px}
+  .footer-company small{font-size:14px;line-height:1.5}
+  .disclaimer-content{padding:32px 7% 40px}
+  .disclaimer-content h1{font-size:32px}
+  .disclaimer-content h2{font-size:23px}
+}
+.footer-disclaimer:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+
+/* Mobile-only footer: omit branding and align company/email columns. */
+@media(max-width:600px){
+  .site-footer>.footer-brand{display:none}
+  .site-footer>.footer-item{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;justify-content:initial;gap:14px;width:min(100%,340px);margin:0 auto;padding:10px 8px;text-align:left}
+  .site-footer>.footer-item>svg{width:28px;height:28px;margin:0}
+  .site-footer>.footer-company{border-top:0;padding-top:0;min-height:0}
+  .site-footer>.footer-company>span{min-width:0}
+  .site-footer>.footer-company small{display:block;max-width:230px}
+}
+
+/* Additional space below the About eyebrow. */
+.about-intro>.eyebrow{margin-bottom:16px}
+
+/* Services decoration sits behind the copy at every viewport width. */
+.services-intro{isolation:isolate}
+.services-intro>.branch{z-index:0;pointer-events:none}
+.services-intro>.eyebrow,.services-intro>h1,.services-intro>p{position:relative;z-index:1}
+
+/* Contact callback time: standard heading and subtle explanatory text. */
+
+@media(max-width:600px){.page-contact .callback-time>b{font-size:16px}}
+
+/* Match date/time typography and align the control row. */
+.page-contact .callback{align-items:stretch}
+.page-contact .callback>label{display:grid;grid-template-rows:auto 1fr auto}
+.page-contact .callback>label>small{height:auto;min-height:24px}
+.page-contact .callback>label>.date-wrap,.page-contact .callback>label>.time-select{align-self:end}
+
+/* Preserve the approved device-specific control heights after today's alignment update. */
+@media(min-width:601px) and (max-width:900px){
+  .page-contact .callback>label{grid-template-rows:auto 1fr 40px}
+}
+@media(max-width:600px){
+  .page-contact .callback>label{grid-template-rows:auto auto 44px;gap:2px}
+}
