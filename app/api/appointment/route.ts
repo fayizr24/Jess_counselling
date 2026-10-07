@@ -1,3 +1,5 @@
+import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail } from "../../lib/namecheap-email";
+
 const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
   .replaceAll("&","&amp;")
   .replaceAll("<","&lt;")
@@ -7,8 +9,12 @@ const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
 
 export async function POST(request:Request){
   const form=await request.formData();
-  const key=process.env.RESEND_API_KEY;
-  if(!key)return Response.json({error:"The email service is not configured yet. Please email hello@jesscounselling.online directly."},{status:503});
+  try {
+    getNamecheapConfiguration("appointment");
+  } catch (error) {
+    if (error instanceof EmailConfigurationError) return Response.json({error:"The email service is not configured yet. Please email hello@jesscounselling.online directly."},{status:503});
+    throw error;
+  }
 
   const name=escapeHtml(form.get("name"));
   const email=escapeHtml(form.get("confirmation email"));
@@ -31,7 +37,10 @@ export async function POST(request:Request){
 
   const rows:string[]=[];
   form.forEach((value,label)=>rows.push(`${label}: ${String(value)}`));
-  const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({from:process.env.FORM_FROM_EMAIL||"Jess Counselling <onboarding@resend.dev>",to:["hello@jesscounselling.online"],subject:`New appointment booking from ${form.get("name")}`,html,text:rows.join("\n")})});
-  if(!response.ok)return Response.json({error:"The appointment could not be emailed. Please try again or contact us directly."},{status:502});
+  try {
+    await sendNamecheapEmail({subject:`${form.get("name")}: New appointment booking`,html,text:rows.join("\n")}, "appointment");
+  } catch {
+    return Response.json({error:"The appointment could not be emailed. Please try again or contact us directly."},{status:502});
+  }
   return Response.json({ok:true});
 }
