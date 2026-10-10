@@ -12,7 +12,7 @@ export function createContactAcknowledgementData(form:FormData){
 export function ContactAcknowledgement({details}:{details:ReturnType<typeof createContactAcknowledgementData>}){
   return <section className="contact-acknowledgement" role="status" aria-label="Free online consultation acknowledgement">
     <h2><span className="contact-acknowledgement-check" aria-hidden="true">✓</span>Free Online Consultation Request</h2>
-    <p>Thank you for submitting a free online consultation request. Your session will be arranged as scheduled at {details.time} Indian time on {details.date}.</p>
+    <p>Thank you for submitting a free online consultation request. Your session will be arranged as scheduled at <strong>{details.time}</strong> Indian time on <strong>{details.date}</strong>.</p>
     <dl className="contact-acknowledgement-details">{details.contacts.map(contact=><div className="contact-acknowledgement-method" key={contact.method}>
       <dt>Contact method</dt><dd>{contact.method}</dd>
       <dt>Contact details</dt><dd>{contact.detail}</dd>

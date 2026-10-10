@@ -57,16 +57,11 @@ function subjectHeader(value: string): string {
   return chunks.join("\r\n ");
 }
 
-function mimeMessage(from: string, subject: string, text: string, html: string): string {
+export type EmailAttachment = {filename:string;contentType:string;base64:string};
+
+export function mimeMessage(from: string, subject: string, text: string, html: string, attachment?: EmailAttachment): string {
   const boundary = `jess_${crypto.randomUUID().replaceAll("-", "")}`;
-  return [
-    `From: Jess Counselling Website <${from}>`,
-    `To: ${RECIPIENT}`,
-    `Reply-To: ${RECIPIENT}`,
-    `Subject: ${subjectHeader(subject)}`,
-    `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <${crypto.randomUUID()}@jesscounselling.online>`,
-    "MIME-Version: 1.0",
+  const alternative = [
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     "",
     `--${boundary}`,
@@ -82,10 +77,26 @@ function mimeMessage(from: string, subject: string, text: string, html: string):
     `--${boundary}--`,
     "",
   ].join("\r\n");
+  const headers = [
+    `From: Jess Counselling Website <${from}>`, `To: ${RECIPIENT}`, `Reply-To: ${RECIPIENT}`,
+    `Subject: ${subjectHeader(subject)}`, `Date: ${new Date().toUTCString()}`,
+    `Message-ID: <${crypto.randomUUID()}@jesscounselling.online>`, "MIME-Version: 1.0",
+  ];
+  if (!attachment) return [...headers,alternative].join("\r\n");
+  const mixed = `jess_mixed_${crypto.randomUUID().replaceAll("-", "")}`;
+  // Only fixed filenames and audio MIME types reach this boundary.
+  const filename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return [...headers, `Content-Type: multipart/mixed; boundary="${mixed}"`, "",
+    `--${mixed}`, alternative, `--${mixed}`,
+    `Content-Type: ${attachment.contentType}; name="${filename}"`,
+    `Content-Disposition: attachment; filename="${filename}"`,
+    "Content-Transfer-Encoding: base64", "", attachment.base64.match(/.{1,76}/g)?.join("\r\n") || "",
+    `--${mixed}--`, "",
+  ].join("\r\n");
 }
 
 /** Send only after TLS authentication; succeed only after SMTP accepts DATA. */
-export async function sendNamecheapEmail(message: { subject: string; text: string; html: string }, form: EmailForm = "consultation") {
+export async function sendNamecheapEmail(message: { subject: string; text: string; html: string; attachment?: EmailAttachment }, form: EmailForm = "consultation") {
   const configuration = getNamecheapConfiguration(form);
   const socket = connect({ hostname: SMTP_HOST, port: SMTP_PORT }, { secureTransport: "on", allowHalfOpen: false });
   // Consume transport rejection without exposing mail server responses/credentials.
@@ -152,7 +163,7 @@ export async function sendNamecheapEmail(message: { subject: string; text: strin
     await command(`MAIL FROM:<${configuration.from}>`, [250]);
     await command(`RCPT TO:<${RECIPIENT}>`, [250, 251]);
     await command("DATA", [354]);
-    const mime = mimeMessage(configuration.from, message.subject, message.text, message.html);
+    const mime = mimeMessage(configuration.from, message.subject, message.text, message.html, message.attachment);
     await writer.write(encoder.encode(mime.replace(/^\./gm, "..") + ".\r\n"));
     await reply([250]);
     // Acceptance is final. A failed QUIT must not trigger a duplicate retry.

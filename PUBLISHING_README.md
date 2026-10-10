@@ -1,5 +1,13 @@
 # Jess Counselling — Publishing Notes
 
+## Sitemap (updated 10 October 2026)
+
+`public/sitemap.xml` is included and served at `/sitemap.xml` after deployment.
+It lists Home, About, Services and Contact only. Appointment and Disclaimer
+remain in the website pack but are excluded from the sitemap as requested.
+The sitemap uses the production domain `https://jesscounselling.online`.
+Submit the deployed sitemap URL to Google Search Console and Bing Webmaster Tools.
+
 This package contains the complete responsive website source, including:
 
 - Home, About, Services and Contact pages

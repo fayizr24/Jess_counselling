@@ -531,10 +531,10 @@ img{max-width:100%}
 
 /* Approved Logo Final, with editable supporting text. Existing hidden footer branding stays hidden. */
 .jess-final{position:relative;width:100%;aspect-ratio:2048/692;container-type:inline-size}
-.site-header .brand .jess-final-art,.site-footer .footer-brand .jess-final-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;clip-path:polygon(0 0,100% 0,100% 60%,85% 60%,85% 57%,33% 57%,33% 100%,0 100%)}
-.jess-final-copy{position:absolute;left:32.85%;right:6.7%;top:57%;text-align:center;color:#bc8e37;font-family:Georgia,'Times New Roman',serif}
+.site-header .brand .jess-final-art,.site-footer .footer-brand .jess-final-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;clip-path:polygon(0 0,100% 0,100% 55%,92% 55%,92% 56%,86% 56%,86% 55%,32% 55%,32% 100%,0 100%)}
+.jess-final-copy{position:absolute;left:33.2%;right:9%;top:57%;text-align:center;color:#936b25;font-family:Georgia,'Times New Roman',serif}
 .jess-final-service-row{display:flex;align-items:center;gap:1cqw;white-space:nowrap}
-.jess-final-service-row::before,.jess-final-service-row::after{content:'';height:.2cqw;min-height:1px;background:#bc8e37;flex:1}
+.jess-final-service-row::before,.jess-final-service-row::after{content:'';height:.2cqw;min-height:1px;background:#936b25;flex:1}
 .site-header .brand .jess-final-service,.site-footer .footer-brand .jess-final-service{display:block;flex:none;width:auto;max-width:none;margin:0;font-size:calc(3.15cqw + 1pt);font-weight:700;line-height:1.12}
 .jess-final-language{margin:1.15cqw 0 0;font-size:calc(2.7cqw + 2pt);line-height:1.2;font-style:italic;color:#124a32;font-weight:400;white-space:nowrap}
 
@@ -571,7 +571,7 @@ img{max-width:100%}
   .page-home .home-scene .story-script{left:50%}
 }
 
-.page-contact .callback-indian-time{text-decoration-line:underline;text-decoration-color:#ffeb3b;text-decoration-thickness:2px;text-underline-offset:0px}
+.page-contact .callback-indian-time{background:#f4e4bd;color:inherit;text-decoration:none;padding:0 2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 
 .page-contact .form-status{white-space:pre-line}
 
@@ -586,3 +586,51 @@ img{max-width:100%}
 .page-contact .contact-acknowledgement-method dt,.page-contact .contact-acknowledgement-method dd{margin:0;overflow-wrap:anywhere}
 .page-contact .contact-acknowledgement .contact-acknowledgement-reschedule{margin-top:24px}
 @media(max-width:600px){.page-contact .contact-acknowledgement{padding:18px 14px}.page-contact .contact-acknowledgement-method{grid-template-columns:minmax(100px,40%) minmax(0,1fr);gap:8px 12px}}
+
+/* Optional Contact voice message */
+.page-contact .voice-recorder{margin:20px 0 24px;padding:18px;background:#f4f7e8;border:1px solid #d7dfc2;border-radius:10px;color:#071a58}
+.page-contact .voice-recorder>p{font-size:14px;line-height:1.5;margin:8px 0 14px}
+.page-contact .voice-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.page-contact .voice-button,.page-contact .voice-delete{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:10px 14px;border-radius:7px;border:1px solid #6f7f32;font:inherit;font-size:14px;cursor:pointer}
+.page-contact .voice-button{background:#6f7f32;color:#fff}.page-contact .voice-delete{background:#fff;color:#071a58;border-color:#cbd4bf}
+.page-contact .voice-controls button:disabled{opacity:.6;cursor:default}.page-contact .voice-controls button:focus-visible{outline:3px solid #dbab52;outline-offset:3px}
+.page-contact .voice-timer{font-size:14px;font-variant-numeric:tabular-nums}.page-contact .voice-timer.recording{color:#a32929}
+.page-contact .voice-recorder audio{display:block;width:100%;max-width:420px;margin-top:14px}
+.page-contact .voice-recorder .voice-status{font-size:12px;color:#51636a;margin-bottom:0}
+
+.page-contact #consultation-form .privacy,
+.page-contact #consultation-form .privacy svg{color:var(--navy)}
+
+.page-contact .contact-aside h2{font-family:'Lora',Georgia,serif;font-style:italic;font-weight:700;background:transparent;color:var(--green)}
+
+.page-contact .voice-recorder .voice-status-updated{color:#b22222}
+
+.page-about .about-intro .about-tagline{font-family:'Lora',Georgia,serif;font-style:italic;font-weight:500;font-size:22px;line-height:1.5;color:var(--green)}
+.page-about .about-tagline span{white-space:nowrap;text-decoration-line:underline;text-decoration-color:#d8c6a6;text-decoration-thickness:3px;text-underline-offset:5px;text-decoration-skip-ink:none}
+@media(max-width:420px){.page-about .about-intro .about-tagline{font-size:20px}}
+
+/* Align mobile About footer icons with the values above (12% inset). */
+@media(max-width:600px){
+  .page-about .site-footer>.footer-item{width:100%;padding-left:6.818182%}
+}
+
+/* Shorter side lines for the approved reduced graphic lettering. */
+.jess-final-service-row::before{clip-path:none}
+.jess-final-service-row::after{clip-path:none}
+
+/* Appointment time label, aligned controls, and confidentiality colour. */
+.page-appointment .appointment-callback{align-items:stretch}
+.page-appointment .appointment-callback>label{display:grid;grid-template-rows:auto 1fr auto}
+.page-appointment .appointment-callback>label>small{height:auto;min-height:24px}
+.page-appointment .appointment-callback .appointment-indian-time{background:#eee4d2;color:inherit;border-radius:0;padding:0 2px}
+.page-appointment .appointment-callback .time-select{border:0!important;min-height:28px;height:auto;align-self:end}
+.page-appointment .appointment-callback .time-select select{height:28px}
+.page-appointment #appointment-form .privacy,
+.page-appointment #appointment-form .privacy svg{color:var(--navy)}
+@media(min-width:601px) and (max-width:900px){.page-appointment .appointment-callback .time-select select{height:40px}}
+@media(max-width:600px){.page-appointment .appointment-callback .time-select select{height:44px}}
+
+/* Services mobile footer: shift both contact rows slightly right. */
+@media(max-width:600px){
+  .page-services .site-footer>.footer-item{transform:translateX(20px)}
+}

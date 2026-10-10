@@ -1,5 +1,5 @@
 import { CONSULTATION_NOTICE_MESSAGE, consultationSlotAvailable } from "../../lib/consultation-slots";
-import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail } from "../../lib/namecheap-email";
+import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail, type EmailAttachment } from "../../lib/namecheap-email";
 
 const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
   .replaceAll("&","&amp;")
@@ -9,7 +9,22 @@ const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
   .replaceAll("'","&#039;");
 
 export async function POST(request:Request){
-  const form=await request.formData();
+  if (Number(request.headers.get("content-length") || 0) > 6 * 1024 * 1024) return Response.json({error:"The recording is too large. Please record a shorter message."},{status:413});
+  let form:FormData;
+  try { form=await request.formData(); } catch { return Response.json({error:"The form could not be read. Please try again."},{status:400}); }
+  let attachment:EmailAttachment|undefined;
+  const recording=form.get("voice recording");
+  if (recording!==null) {
+    if (typeof recording === "string" || !recording.size || recording.size>5*1024*1024) return Response.json({error:"Please record a voice message smaller than 5 MB."},{status:400});
+    const type=recording.type.split(";")[0].toLowerCase();
+    const extensions:Record<string,string>={"audio/webm":"webm","audio/mp4":"m4a","audio/ogg":"ogg"};
+    if (!extensions[type]) return Response.json({error:"Unsupported recording format. Please record again or use the text box."},{status:400});
+    const bytes=new Uint8Array(await recording.arrayBuffer());
+    const starts=(values:number[])=>values.every((value,index)=>bytes[index]===value);
+    if (!(type==="audio/webm"&&starts([0x1a,0x45,0xdf,0xa3]) || type==="audio/ogg"&&starts([0x4f,0x67,0x67,0x53]) || type==="audio/mp4"&&String.fromCharCode(...bytes.slice(4,8))==="ftyp")) return Response.json({error:"The recording is invalid. Please record again."},{status:400});
+    let binary="";for(let offset=0;offset<bytes.length;offset+=16384)binary+=String.fromCharCode(...bytes.subarray(offset,offset+16384));
+    attachment={filename:`counselling-voice-message.${extensions[type]}`,contentType:type,base64:btoa(binary)};
+  }
   if (!consultationSlotAvailable(String(form.get("callback date") || ""), String(form.get("callback time (Indian Time)") || ""))) {
     return Response.json({error:CONSULTATION_NOTICE_MESSAGE},{status:400});
   }
@@ -40,13 +55,14 @@ export async function POST(request:Request){
     ${section("Preferred Callback",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr><td style="padding:6px 0;color:#51636a;width:42%;">Date</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackDate}</td></tr><tr><td style="padding:6px 0;color:#51636a;">Time</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackTime} <span style="background:#fff3a3;color:#111;padding:1px 5px;">(Indian Time)</span></td></tr></table>`)}
     ${section("Areas of Support",`<div style="line-height:1.55;color:#071a58;">${support}</div>${otherSupport!=="Not provided"?`<div style="margin-top:8px;color:#51636a;">Other details: <strong style="color:#071a58;">${otherSupport}</strong></div>`:""}`)}
     ${section("Additional Information",`<div style="padding:12px 14px;background:#fff;border-left:4px solid #fff3a3;color:#24394c;line-height:1.55;white-space:pre-wrap;">${additional}</div>`)}
+    ${attachment?section("Voice Recording","The client’s voice recording is attached to this email."):""}
     <tr><td style="padding:2px 28px 26px;text-align:center;color:#66777b;font-size:12px;">This consultation request was submitted through the Jess Counselling website.<br><strong style="color:#071a58;">Malayalam / English</strong></td></tr>
   </table></td></tr></table></body></html>`;
 
   const rows:string[]=[];
-  form.forEach((value,label)=>rows.push(`${label}: ${String(value)}`));
+  form.forEach((value,label)=>{if(typeof value==="string")rows.push(`${label}: ${value}`);});if(attachment)rows.push("Voice recording: attached");
   try {
-    await sendNamecheapEmail({subject:`${form.get("name")}: New consultation request`,html,text:rows.join("\n")});
+    await sendNamecheapEmail({subject:`${form.get("name")}: New consultation request`,html,text:rows.join("\n"),attachment});
   } catch {
     // Do not expose SMTP replies, mailbox passwords, or counselling content.
     return Response.json({error:"The request could not be emailed. Please try again or contact us directly."},{status:502});

@@ -16,7 +16,7 @@ export function consultationSlotAvailable(date: string, time: string, now = Date
   const iso = consultationDateIso(date);
   if (!iso || !CONSULTATION_TIMES.includes(time)) return false;
   const day = new Date(`${iso}T00:00:00Z`);
-  if (!Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== iso || day.getUTCDay() < 1 || day.getUTCDay() > 4) return false;
+  if (!Number.isFinite(day.getTime()) || day.toISOString().slice(0, 10) !== iso || day.getUTCDay() < 1 || day.getUTCDay() > 5) return false;
   const match = /^(\d{1,2}):(\d{2}) PM$/.exec(time)!;
   const hour = Number(match[1]) % 12 + 12;
   const slot = Date.parse(`${iso}T${String(hour).padStart(2, "0")}:${match[2]}:00+05:30`);
