@@ -38,9 +38,10 @@ async function fixture(steps, env = { SMTP_PASSWORD: 'test-only-password' }, sta
   if (stalled) js = js.replace('const TIMEOUT_MS = 25000;', 'const TIMEOUT_MS = 20;');
   const url = 'data:text/javascript;base64,' + Buffer.from(js).toString('base64') + '#' + Math.random();
   const module = await import(url);
-  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url));
+  const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",existing:false}};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
+  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl));
   const route = await import('data:text/javascript;base64,' + Buffer.from(routeJs).toString('base64'));
-  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url));
+  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl));
   const appointment = await import('data:text/javascript;base64,' + Buffer.from(appointmentJs).toString('base64'));
   return { module, route, appointment, sent, steps, stats: () => ({ connected, closed }) };
 }
@@ -96,11 +97,11 @@ test('configured sender cannot inject SMTP commands', async () => {
   await assert.rejects(f.module.sendNamecheapEmail(message), f.module.EmailConfigurationError);
   assert.equal(f.stats().connected, 0);
 });
-for (const [stage, position] of [['authentication', 1], ['recipient', 3], ['DATA acceptance', 5]]) test(`${stage} rejection returns 502`, async () => {
+for (const [stage, position] of [['authentication', 1], ['recipient', 3], ['DATA acceptance', 5]]) test(`${stage} rejection preserves reservation with warning`, async () => {
   const steps = deliverySteps(); steps[position][1] = '550 refused\r\n'; steps.splice(position + 1);
   const f = await fixture(steps);
   const response = await f.route.POST(request());
-  assert.equal(response.status, 502);
+  assert.equal(response.status, 200);
   assert.ok(!JSON.stringify(await response.json()).includes('test-only-password'));
   assert.deepEqual(f.stats(), { connected: 1, closed: 1 });
 });
@@ -108,7 +109,7 @@ test('SMTP acceptance returns existing ok response', async () => {
   const f = await fixture(deliverySteps());
   const response = await f.route.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking" });
 });
 test('stalled server times out and closes', async () => {
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password' }, true);
@@ -119,7 +120,7 @@ test('Appointment sends from appointments alias using the hello login and recipi
   const f = await fixture(deliverySteps('LOGIN', 'appointments'));
   const response = await f.appointment.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking" });
   assert.equal(f.steps.length, 0);
   assert.match(f.sent.at(-1), /From: Jess Counselling Website <appointments@jesscounselling.online>/);
   const htmlPart = f.sent.at(-1).match(/Content-Type: text\/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
@@ -130,11 +131,11 @@ test('Appointment with missing password returns 503 without connecting', async (
   assert.equal((await f.appointment.POST(request())).status, 503);
   assert.equal(f.stats().connected, 0);
 });
-test('Appointment rejected by SMTP returns 502', async () => {
+test('Appointment rejected by SMTP preserves reservation', async () => {
   const steps = deliverySteps('PLAIN', 'appointments');
   steps[5][1] = '550 refused\r\n';
   const f = await fixture(steps);
-  assert.equal((await f.appointment.POST(request())).status, 502);
+  assert.equal((await f.appointment.POST(request())).status, 200);
 });
 test('old generic sender setting does not override the two form-specific aliases', async () => {
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password', SMTP_FROM_EMAIL: 'sender@jesscounselling.online' });

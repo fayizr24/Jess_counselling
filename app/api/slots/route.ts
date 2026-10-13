@@ -1,0 +1,2 @@
+import {availability,monthAvailability,bookingError} from '../../lib/booking-store';
+export async function GET(request:Request){try{const u=new URL(request.url),kind=u.searchParams.get('kind');if(kind!=='contact'&&kind!=='appointment')return Response.json({error:'Invalid form.'},{status:400});return Response.json(u.searchParams.has('month')?await monthAvailability(kind,u.searchParams.get('month')||''):await availability(kind,u.searchParams.get('date')||''),{headers:{'Cache-Control':'no-store, max-age=0'}});}catch(e){return bookingError(e);}}

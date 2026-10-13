@@ -1,4 +1,4 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import {sqliteTable,text,integer,primaryKey} from 'drizzle-orm/sqlite-core';
+export const bookingSlots=sqliteTable('booking_slots',{date:text('date').notNull(),minute:integer('minute').notNull(),manual:integer('manual').notNull().default(0)},t=>[primaryKey({columns:[t.date,t.minute]})]);
+export const bookings=sqliteTable('bookings',{id:text('id').primaryKey(),requestKey:text('request_key').notNull().unique(),date:text('date').notNull(),minute:integer('minute').notNull(),kind:text('kind').notNull(),radius:integer('radius').notNull(),active:integer('active').notNull().default(1),notification:text('notification').notNull().default('pending'),created:text('created').notNull()});
+export const bookingBlocks=sqliteTable('booking_blocks',{bookingId:text('booking_id').notNull().references(()=>bookings.id),date:text('date').notNull(),minute:integer('minute').notNull()},t=>[primaryKey({columns:[t.bookingId,t.date,t.minute]})]);

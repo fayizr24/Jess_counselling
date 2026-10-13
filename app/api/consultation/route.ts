@@ -1,4 +1,4 @@
-import { CONSULTATION_NOTICE_MESSAGE, consultationSlotAvailable } from "../../lib/consultation-slots";
+import {reserve,notificationResult,bookingError} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail, type EmailAttachment } from "../../lib/namecheap-email";
 
 const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
@@ -25,9 +25,6 @@ export async function POST(request:Request){
     let binary="";for(let offset=0;offset<bytes.length;offset+=16384)binary+=String.fromCharCode(...bytes.subarray(offset,offset+16384));
     attachment={filename:`counselling-voice-message.${extensions[type]}`,contentType:type,base64:btoa(binary)};
   }
-  if (!consultationSlotAvailable(String(form.get("callback date") || ""), String(form.get("callback time (Indian Time)") || ""))) {
-    return Response.json({error:CONSULTATION_NOTICE_MESSAGE},{status:400});
-  }
   try {
     getNamecheapConfiguration();
   } catch (error) {
@@ -35,6 +32,9 @@ export async function POST(request:Request){
     throw error;
   }
 
+  let reservation:Awaited<ReturnType<typeof reserve>>;
+  try { reservation=await reserve("contact",String(form.get("callback date")||""),String(form.get("callback time (Indian Time)")||""),request.headers.get("Idempotency-Key")||""); } catch(e){return bookingError(e);}
+  if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,warning:reservation.notification==='sent'?undefined:'Your slot is reserved. Please contact us directly to confirm receipt; the notification email has not been confirmed.'});
   const name=escapeHtml(form.get("name"));
   const methods=String(form.get("contact methods")||"Not provided");
   const contactRows=methods.split(",").map(method=>method.trim()).filter(Boolean).map(method=>{
@@ -65,7 +65,9 @@ export async function POST(request:Request){
     await sendNamecheapEmail({subject:`${form.get("name")}: New consultation request`,html,text:rows.join("\n"),attachment});
   } catch {
     // Do not expose SMTP replies, mailbox passwords, or counselling content.
-    return Response.json({error:"The request could not be emailed. Please try again or contact us directly."},{status:502});
+    try {await notificationResult(reservation.id,'failed');}catch{}
+    return Response.json({ok:true,bookingId:reservation.id,warning:'Your slot is reserved, but the notification email could not be confirmed. Please contact hello@jesscounselling.online or WhatsApp to confirm receipt. Do not submit again.'});
   }
-  return Response.json({ok:true});
+  try {await notificationResult(reservation.id,'sent');}catch{}
+  return Response.json({ok:true,bookingId:reservation.id});
 }

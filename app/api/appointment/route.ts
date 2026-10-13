@@ -1,3 +1,4 @@
+import {reserve,notificationResult,bookingError} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail } from "../../lib/namecheap-email";
 
 const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
@@ -16,6 +17,9 @@ export async function POST(request:Request){
     throw error;
   }
 
+  let reservation:Awaited<ReturnType<typeof reserve>>;
+  try { reservation=await reserve("appointment",String(form.get("appointment date")||""),String(form.get("appointment time (Indian Time)")||""),request.headers.get("Idempotency-Key")||""); } catch(e){return bookingError(e);}
+  if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,warning:reservation.notification==='sent'?undefined:'Your slot is reserved. Please contact us directly to confirm receipt; the notification email has not been confirmed.'});
   const name=escapeHtml(form.get("name"));
   const email=escapeHtml(form.get("confirmation email"));
   const methods=String(form.get("contact methods")||"Not provided");
@@ -40,7 +44,9 @@ export async function POST(request:Request){
   try {
     await sendNamecheapEmail({subject:`${form.get("name")}: New appointment booking`,html,text:rows.join("\n")}, "appointment");
   } catch {
-    return Response.json({error:"The appointment could not be emailed. Please try again or contact us directly."},{status:502});
+    try {await notificationResult(reservation.id,'failed');}catch{}
+    return Response.json({ok:true,bookingId:reservation.id,warning:'Your slot is reserved, but the notification email could not be confirmed. Please contact hello@jesscounselling.online or WhatsApp to confirm receipt. Do not submit again.'});
   }
-  return Response.json({ok:true});
+  try {await notificationResult(reservation.id,'sent');}catch{}
+  return Response.json({ok:true,bookingId:reservation.id});
 }

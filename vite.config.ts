@@ -4,8 +4,10 @@ import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
 
-const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
+// Production Cloudflare D1 database (jess_bookings). The build writes this into
+// dist/server/wrangler.json, which the Cloudflare deployment uses.
+const BOOKING_DATABASE_NAME = "jess_bookings";
+const BOOKING_DATABASE_ID = "e5a19523-955a-47dd-abe6-7ab8b0d26a94";
 
 const { d1, r2 } = hostingConfig;
 
@@ -20,8 +22,8 @@ const localBindingConfig = {
     ? [
         {
           binding: d1,
-          database_name: "site-creator-d1",
-          database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          database_name: BOOKING_DATABASE_NAME,
+          database_id: BOOKING_DATABASE_ID,
         },
       ]
     : [],
