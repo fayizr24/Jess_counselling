@@ -345,7 +345,8 @@ img{max-width:100%}
   .contact-main form>fieldset:first-of-type>legend,
   .contact-main form>.callback>label:first-child>b,
   .contact-main form>.support-field>legend,
-  .contact-main form>.additional>b{font-size:16px}
+  .contact-main form>.additional>b,
+  .page-contact .voice-recorder>#voice-recording-title{font-size:16px}
   .contact-main form>.additional{margin-top:27px}
   .contact-aside h2{margin-top:18px}
 }
@@ -633,4 +634,29 @@ img{max-width:100%}
 /* Services mobile footer: shift both contact rows slightly right. */
 @media(max-width:600px){
   .page-services .site-footer>.footer-item{transform:translateX(20px)}
+}
+
+/* Keep availability feedback outside the aligned date/time control grid on desktop and tablet. */
+.booking-availability-status{display:none}
+@media(min-width:601px){
+  .callback>label>.booking-inline-status{display:none}
+  .booking-availability-status{display:block}
+}
+
+/* Slot-conflict submission feedback in both booking forms. */
+.form-status.slot-unavailable-error{color:#8b0000}
+
+/* Tablet-only footer: centre email below logo and complete both divider lines. */
+@media(min-width:601px) and (max-width:900px){
+  .site-footer>.footer-item{position:relative;border-top-color:transparent}
+  .site-footer>.footer-item::before{content:"";position:absolute;top:0;border-top:1px solid #9fb9bc;pointer-events:none}
+  .site-footer>.footer-company::before{left:calc(-100% - 12px);right:0}
+  .site-footer>a.footer-item{justify-content:center;padding-left:8px;padding-right:56px}
+  .site-footer>a.footer-item::before{left:0;right:calc(-100% - 12px)}
+}
+
+/* About desktop and tablet: one line of space before the photo and description. */
+@media(min-width:601px){
+  .page-about .about-grid>.about-photo,
+  .page-about .about-grid>.about-copy{margin-top:20px}
 }

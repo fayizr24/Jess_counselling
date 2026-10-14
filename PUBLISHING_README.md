@@ -1,37 +1,80 @@
-# Jess Counselling — HTML Final with Database
+# Jess Counselling — Publishing Notes
 
-Complete publishing source package prepared 13 October 2026.
+## Sitemap (updated 10 October 2026)
 
-Start with **Jess-Counselling-Cloudflare-Booking-Setup.md**. This replaces the previous publishing instructions for this database version.
+`public/sitemap.xml` is included and served at `/sitemap.xml` after deployment.
+It lists Home, About, Services and Contact only. Appointment and Disclaimer
+remain in the website pack but are excluded from the sitemap as requested.
+The sitemap uses the production domain `https://jesscounselling.online`.
+Submit the deployed sitemap URL to Google Search Console and Bing Webmaster Tools.
 
-## Included
+This package contains the complete responsive website source, including:
 
-- Home, About, Services, Contact, Appointment and Counselling Disclaimer pages.
-- Approved responsive styles, logo, artwork, voice recorder and Appointment PDF code.
-- Contact and Appointment server handlers using the existing Namecheap SMTP setup.
-- Shared Cloudflare D1 scheduling, date and slot availability endpoints, atomic booking checks and conflict retry handling.
-- Password-protected `/slot-admin`, individual slot checkboxes, Saturday openings and whole-day holiday/travel blocking.
-- Database schema/migrations in `drizzle/` and configuration helper in `scripts/configure-cloudflare.mjs`.
-- Source dependencies/lockfile, build configuration and automated tests.
-- `public/sitemap.xml` for Home, About, Services and Contact. Appointment and Disclaimer are included in the website but excluded from the sitemap.
+- Home, About, Services and Contact pages
+- The unlisted Appointment page at `/appointment`
+- Contact and appointment email handlers
+- All approved images and graphics
+- Mobile and tablet layouts
 
-## Publisher must configure
+## Contact and Appointment forms: Namecheap Private Email
 
-1. Use Node >=22.13 and the declared pnpm version in package.json. Install and build the complete source.
-2. Create/select `jess-bookings` in D1 and obtain its real UUID.
-3. Run the configuration helper after building; use the existing Worker name if updating one.
-4. Apply the supplied migrations remotely with the generated configuration; deploy the Worker.
-5. Set `BOOKING_ADMIN_PASSWORD` (at least 20 characters) and `SMTP_PASSWORD` as Worker secrets. Retain existing SMTP overrides and Namecheap sender aliases.
-6. Verify the uppercase `DB` binding, test the Worker URL, then attach the production domain and complete the acceptance checks in the guide.
+Both forms send directly through `mail.privateemail.com:465` using
+TLS and authenticated SMTP. No Resend account or API key is used by either form.
+Their recipient is fixed as `hello@jesscounselling.online`; the existing HTML
+email design and plain-text alternative are retained.
 
-This is a source package for a Cloudflare Worker, not a static-only Pages upload. Both forms depend on the database. Do not deploy only client assets. No passwords or client booking data are included.
+1. In Namecheap, create `free-consult@jesscounselling.online` and
+   `appointments@jesscounselling.online` as aliases of the
+   `hello@jesscounselling.online` mailbox before using those sender addresses.
+2. On the Cloudflare Worker serving the website, open Settings > Variables
+   and Secrets and add the following runtime settings:
 
-## Verified for this package
+| Type | Name | Value |
+| --- | --- | --- |
+| Secret | `SMTP_PASSWORD` | The hello mailbox's password or application password |
+| Text | `SMTP_USER` | `hello@jesscounselling.online` |
+| Text (optional) | `SMTP_CONTACT_FROM_EMAIL` | `free-consult@jesscounselling.online` |
+| Text (optional) | `SMTP_APPOINTMENT_FROM_EMAIL` | `appointments@jesscounselling.online` |
 
-All 17 automated tests, TypeScript validation and production build passed on 13 October 2026. Live Namecheap delivery, the publisher's Cloudflare account and device/browser testing must be verified after deployment. No external deployment was performed while preparing this ZIP.
+3. Deploy the changed settings and this updated source to the same Worker.
+4. Submit both forms using test details and check the hello inbox and Spam.
 
-## Source identity
+The default SMTP username is hello. Contact messages use free-consult and
+Appointment messages use appointments. The optional per-form sender settings
+can override those defaults; each accepts a bare address without a display
+name or angle brackets. The old generic SMTP_FROM_EMAIL setting is ignored.
+The display name is Jess Counselling Website. Reply-To is the hello mailbox.
+Preserve the existing Namecheap MX, SPF and DKIM records. Cloudflare Email
+Routing is not required. Keep mailbox credentials out of source and browser code.
 
-Saved version: HTML Final with Database.
-Source commit: `7b7313a17eeb61aa9099924841edeb5f876cc772`.
-The older HTML Final with Logo package remains unchanged.
+Both handlers reserve the shared D1 slot before sending email. Missing SMTP settings fail before reservation. SMTP rejection or an uncertain timeout retains the booking, marks its email notification as failed, and returns a clear warning to contact the counsellor directly. Retrying the same submission reference does not send another email or create another booking. A reserved Appointment is still subject to the existing payment confirmation rule.
+
+See `CLOUDFLARE_BOOKING_SETUP.md` for the D1 setup, deployment commands and private checkbox management page.
+
+Both handlers use the same hello mailbox password. The previous RESEND_API_KEY
+and FORM_FROM_EMAIL settings are no longer used by either form. Their existing
+HTML email layouts and plain-text alternatives are retained. Email subjects are
+`[name]: New consultation request` for Contact and
+`[name]: New appointment booking` for Appointment.
+Appointment submission has no Contact-form daily browser restriction.
+
+## Verification
+
+`node --test tests/namecheap-email.test.mjs` checks TLS, authentication, alias
+sending, Unicode HTML/plain-text bodies, configuration and delivery failures,
+header injection protection, separate sender aliases, both form handlers,
+acceptance and timeout handling without sending mail.
+
+## Build and run
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+Connect the domain `jesscounselling.online` to the hosting deployment. The unlisted appointment page will then be available directly at:
+
+`https://jesscounselling.online/appointment`
+
+The Appointment page is excluded from the visible website navigation and includes a search-engine no-index instruction.

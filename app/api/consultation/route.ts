@@ -62,7 +62,7 @@ export async function POST(request:Request){
   const rows:string[]=[];
   form.forEach((value,label)=>{if(typeof value==="string")rows.push(`${label}: ${value}`);});if(attachment)rows.push("Voice recording: attached");
   try {
-    await sendNamecheapEmail({subject:`${form.get("name")}: New consultation request`,html,text:rows.join("\n"),attachment});
+    await sendNamecheapEmail({subject:`${form.get("name")}: New consultation request${attachment?" (Voice attached)":""}`,html,text:rows.join("\n"),attachment});
   } catch {
     // Do not expose SMTP replies, mailbox passwords, or counselling content.
     try {await notificationResult(reservation.id,'failed');}catch{}

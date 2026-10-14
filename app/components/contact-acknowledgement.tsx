@@ -1,7 +1,12 @@
+import {consultationDateIso,validDate} from "../lib/booking-schedule";
+
 export function createContactAcknowledgementData(form:FormData){
+  const date=String(form.get("callback date")||"");
+  const iso=consultationDateIso(date);
+  const day=validDate(iso)?new Intl.DateTimeFormat("en-GB",{weekday:"long",timeZone:"Asia/Kolkata"}).format(new Date(iso+"T00:00:00+05:30")):"";
   return {
     time:String(form.get("callback time (Indian Time)")||""),
-    date:String(form.get("callback date")||""),
+    date,day,
     contacts:String(form.get("contact methods")||"").split(", ").filter(Boolean).map(method=>({
       method,
       detail:String(form.get("contact_"+method)||"")
@@ -11,8 +16,8 @@ export function createContactAcknowledgementData(form:FormData){
 
 export function ContactAcknowledgement({details}:{details:ReturnType<typeof createContactAcknowledgementData>}){
   return <section className="contact-acknowledgement" role="status" aria-label="Free online consultation acknowledgement">
-    <h2><span className="contact-acknowledgement-check" aria-hidden="true">✓</span>Free Online Consultation Request</h2>
-    <p>Thank you for submitting a free online consultation request. Your session will be arranged as scheduled at <strong>{details.time}</strong> Indian time on <strong>{details.date}</strong>.</p>
+    <h2><span className="contact-acknowledgement-check" aria-hidden="true">✓</span>Free Online Consultation Request Received</h2>
+    <p>Thank you for submitting a free online consultation request. Your session will be arranged as scheduled at <strong>{details.time}</strong> Indian time on <strong>{details.day?details.day+", ":""}{details.date}</strong>.</p>
     <dl className="contact-acknowledgement-details">{details.contacts.map(contact=><div className="contact-acknowledgement-method" key={contact.method}>
       <dt>Contact method</dt><dd>{contact.method}</dd>
       <dt>Contact details</dt><dd>{contact.detail}</dd>

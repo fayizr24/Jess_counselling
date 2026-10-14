@@ -11,7 +11,8 @@ test('shared bookings, D1 transaction races, schedule boundaries, admin and subm
  try{const DB=await mf.getD1Database('DB');for(const sql of readFileSync('drizzle/0000_new_mysterio.sql','utf8').split('--> statement-breakpoint').map(s=>s.trim()).filter(Boolean))await DB.prepare(sql).run();
  // Explicitly open legacy daytime fixtures; the new default schedule is evening only.
  for(const d of ['2030-10-14','2030-10-17'])for(const m of [780,810,840,870,900,960,1110])await DB.prepare('INSERT INTO booking_slots(date,minute,manual) VALUES(?,?,-1)').bind(d,m).run();
- const load=modules({DB,BOOKING_ADMIN_PASSWORD:'test-password-only-at-least-20-characters'});const store=await load('app/lib/booking-store.ts'),schedule=await load('app/lib/booking-schedule.ts'),admin=await load('app/api/slot-admin/route.ts');const date='2030-10-14';
+ const wrappedDB={prepare:sql=>DB.prepare(sql),batch:async statements=>(await DB.batch(statements)).map(result=>({...result,meta:{...result.meta,changes:undefined}}))};
+ const load=modules({DB:wrappedDB,BOOKING_ADMIN_PASSWORD:'test-password-only-at-least-20-characters'});const store=await load('app/lib/booking-store.ts'),schedule=await load('app/lib/booking-schedule.ts'),admin=await load('app/api/slot-admin/route.ts');const date='2030-10-14';
  const contact=await store.reserve('contact',date,'8:00 PM',crypto.randomUUID());assert.equal((await DB.prepare('SELECT count(*) n FROM booking_slots WHERE date=?').bind(date).first()).n,96);
  let available=await store.availability('contact',date);for(const t of ['7:45 PM','8:00 PM','8:15 PM'])assert.equal(available.slots.find(s=>s.time===t).available,false,t);assert.equal(available.slots.find(s=>s.time==='8:30 PM').available,true);
  assert.equal((await store.availability('appointment',date)).slots.find(s=>s.time==='8:30 PM').available,false,'appointment buffer cannot cover existing contact');
@@ -64,6 +65,12 @@ test('shared bookings, D1 transaction races, schedule boundaries, admin and subm
  const rf=new FormData();rf.set('name','Retry test');rf.set('appointment date','17 Oct 2030');rf.set('appointment time (Indian Time)','2:00 PM');
  const rejected=await route.POST(new Request('https://example.test/api/appointment',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:rf}));assert.equal(rejected.status,409);assert.match((await rejected.json()).error,/unavailable/);assert.equal(globalThis.__emailCount,1);
  rf.set('appointment time (Indian Time)','4:00 PM');const retried=await route.POST(new Request('https://example.test/api/appointment',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:rf}));assert.equal(retried.status,200);assert.equal(globalThis.__emailCount,2);
+ // Contact conflicts also send no email and allow the same details to be retried.
+ const crRetry=await load('app/api/consultation/route.ts');const contactRetry=new FormData();contactRetry.set('name','Contact retry');contactRetry.set('callback date','20 Oct 2030');contactRetry.set('callback time (Indian Time)','8:00 PM');
+ await store.reserve('contact','2030-10-20','8:00 PM',crypto.randomUUID());const beforeEmails=globalThis.__emailCount;
+ const contactRequest=()=>new Request('https://example.test/api/consultation',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:contactRetry});
+ const contactRejected=await crRetry.POST(contactRequest());assert.equal(contactRejected.status,409);assert.equal(globalThis.__emailCount,beforeEmails);
+ contactRetry.set('callback time (Indian Time)','9:00 PM');assert.equal((await crRetry.POST(contactRequest())).status,200);assert.equal(globalThis.__emailCount,beforeEmails+1);
  globalThis.__emailFailure=true;const cf=new FormData();cf.set('name','Test');cf.set('callback date','18 Oct 2030');cf.set('callback time (Indian Time)','8:00 PM');const cr=await load('app/api/consultation/route.ts');const response=await cr.POST(new Request('https://example.test/api/consultation',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:cf}));const result=await response.json();assert.equal(result.ok,true);assert.match(result.warning,/reserved/);assert.equal((await store.adminDay('2030-10-18')).slots.find(s=>s.time==='8:00 PM').bookings[0].notification,'failed');
  }finally{await mf.dispose();}
 });

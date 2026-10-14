@@ -1,6 +1,6 @@
 # Jess Counselling: Cloudflare booking setup
 
-Updated 10 October 2026. This guide includes the latest whole-day holiday controls, Saturday openings and submission retry rules. All booking dates and times use Indian Standard Time (Asia/Kolkata, UTC+05:30), irrespective of the visitor's device timezone.
+Prepared 10 October 2026. All booking dates and times use Indian Standard Time (Asia/Kolkata, UTC+05:30), irrespective of the visitor's device timezone.
 
 ## What is programmed
 
@@ -17,9 +17,7 @@ Updated 10 October 2026. This guide includes the latest whole-day holiday contro
 
 ## Before starting
 
-Use the complete source in this HTML Final with Database publishing package, prepared 13 October 2026. It includes the Contact and Appointment forms, all six pages, source assets, booking management page, shared database logic, migrations and deployment helper. It supersedes the pre-database publishing ZIP of 10 October for this database-enabled version. HTML Final with Logo remains the separate older version.
-
-The application source is unchanged from saved commit 7b7313a17eeb61aa9099924841edeb5f876cc772. This package refreshes publisher documentation. Build the source and configure your own D1 UUID and Worker secrets before deployment.
+Use the revised website source saved with these changes. The publishing ZIP dated 10 October before this change does not contain the new database programming. No new publishing ZIP was generated in this task. Request a complete publishing ZIP when you are ready to give the source to your publisher.
 
 The source is a Vinext application with server-side form handlers. It must run on a Cloudflare Worker; uploading only static HTML or client assets to Pages will not enable the booking database or SMTP. If your publisher already builds this application on Workers, update that same Worker. If you currently use a static Pages deployment, test the Worker first and then move the custom domain as explained below.
 
@@ -71,13 +69,13 @@ This generates `dist/server/wrangler.cloudflare.json` and sets:
 
 Run this script again after every build, because a build regenerates the base configuration. The placeholder UUID in the base build is for local/managed preview; it is not your production database.
 
-## 4. Apply the database schema
+## 4. Create the tables and conflict guard
 
 ```bash
 npx wrangler d1 migrations apply DB --remote --config dist/server/wrangler.cloudflare.json
 ```
 
-Confirm the prompt after verifying that the target is your new `jess-bookings` database. This creates `booking_slots`, `bookings`, `booking_blocks`, the required indexes. The SQL is in `drizzle/0000_new_mysterio.sql`.
+Confirm the prompt after verifying that the target is your new `jess-bookings` database. This creates `booking_slots`, `bookings`, `booking_blocks`, the indexes and the booking indexes. The SQL is in `drizzle/0000_new_mysterio.sql`.
 
 Apply migrations before deploying the code. Keep the migration files; Wrangler tracks applied migrations so later runs do not recreate existing tables. Do not run a destructive reset.
 
@@ -96,7 +94,7 @@ Keep the existing Namecheap settings on this Worker. If this is a new Worker, ad
 npx wrangler secret put SMTP_PASSWORD --config dist/server/wrangler.cloudflare.json
 ```
 
-Default SMTP user is `hello@jesscounselling.online`. Default Contact sender is `free-consult@jesscounselling.online`; default Appointment sender is `appointments@jesscounselling.online`; recipient and Reply-To are `hello@jesscounselling.online`. Both use `mail.privateemail.com:465` with TLS. Ensure the two sender addresses are valid Namecheap aliases/mailboxes for the authenticated account. Optional settings are `SMTP_USER`, `SMTP_CONTACT_FROM_EMAIL` and `SMTP_APPOINTMENT_FROM_EMAIL`. Leave MX, SPF and DKIM unchanged. Reapply any existing optional SMTP overrides to a new Worker if they are in use. No password is embedded in the downloaded source.
+Default SMTP user is `hello@jesscounselling.online`. Default Contact sender is `free-consult@jesscounselling.online`; default Appointment sender is `appointments@jesscounselling.online`; recipient and Reply-To are `hello@jesscounselling.online`. Both use `mail.privateemail.com:465` with TLS. Leave MX, SPF and DKIM unchanged. Reapply any existing optional SMTP overrides to a new Worker if they are in use. No password is embedded in the downloaded source.
 
 You can also add the management secret in **Workers & Pages → your Worker → Settings → Variables and Secrets → Add → Secret**, with the exact name `BOOKING_ADMIN_PASSWORD`.
 
@@ -109,53 +107,30 @@ You can also add the management secret in **Workers & Pages → your Worker → 
 5. If moving from static Pages, after testing, remove the existing `jesscounselling.online` custom-domain attachment from Pages, then add that same domain to the new Worker under **Settings → Domains & Routes → Add → Custom domain**. Follow Cloudflare's DNS prompts; an existing conflicting DNS record/attachment may need to be removed for the Worker domain. Coordinate the switch with your publisher to limit interruption.
 6. Verify HTTPS, all six pages, both forms and `/sitemap.xml` after switching.
 
-## 7. Use the booking management page
-
-The checkbox interface is a custom page on your website backed by Cloudflare D1. Cloudflare's own D1 Console provides SQL inspection; it does not provide this booking checkbox interface.
-
-Open `https://jesscounselling.online/slot-admin` after deployment. Before the domain switch, open the test Worker URL followed by `/slot-admin`.
-
-1. Enter the management password.
-2. Choose a date in Indian time.
-3. Click **Load / refresh slots**. The page displays the month's day controls and all 96 quarter-hour points for the selected date.
+## 7. Use the checkbox management page
 
 ### Block a holiday or travel day
 
-1. In **Block whole days**, click the date itself. This blocks every start time on that date for both forms.
-2. Click that date again to remove its whole-day block.
-3. To manage another month, choose a date in that month and load it.
+After loading the management page, the **Block whole days** calendar shows the month of the selected date. Click a day to block every start time on that date in both forms. Click that date again to remove its whole-day block. Choose a date in another month and load it to manage that month.
 
-The calendar label **No block** means there is no whole-day override; the usual weekly schedule still applies. Saturdays remain closed unless individual slots have been explicitly opened.
+A whole-day block takes priority over manually opened slots, and the public calendars grey the date out. Individual slot checkboxes are locked while it is active. Existing bookings are retained, not cancelled or emailed; contact booked clients separately if you need to reschedule them. Reopening restores the underlying weekly hours, manual openings/closures and existing booking buffers. Reopening a Saturday does not automatically open Saturday slots: it removes only the holiday block.
 
-A whole-day block takes priority over individual openings. Both public calendars grey out the date, and the server rejects a submission for that date even if the visitor opened the form before you blocked it. Individual slot checkboxes are locked while the whole-day block is active.
+The day override is stored in booking_slots using minute=-1 and manual=1 for blocked, manual=0 for no day override. This reserved row is separate from the 96 ordinary quarter-hour rows. No new database migration is needed.
 
-**Existing bookings are retained.** Blocking a day does not cancel bookings or send notifications. Contact booked clients separately if they need to reschedule. Removing the day block restores the underlying weekly schedule, individual manual settings and existing booking buffers. It does not erase any of them.
+### Manage individual slots
 
-### Block or release individual time slots
+Open `https://jesscounselling.online/slot-admin` after deployment. On the test Worker, use its URL followed by `/slot-admin`.
 
-- A checked box means blocked. Tick an empty box to close that time for both forms.
-- Untick a weekly closure or manual block to explicitly open that time on that date. This can open a Saturday or a time outside normal hours.
-- Contact accepts opened quarter-hour starts. Appointment accepts only opened hour or half-hour starts. Opening 8:15 PM therefore creates a Contact option, but not an Appointment option.
-- The two-hour rule and existing booking buffers still apply to manual openings.
-- To enable a Saturday, remove any whole-day override first, then untick the desired individual starts. Opening one Saturday does not change other Saturdays.
-- Unticking a booking-controlled block prompts you to cancel the relevant booking(s). Cancellation releases each cancelled booking's complete automatic buffer and preserves other bookings and separate manual blocks.
-- Cancellation does not send an email. Contact the client separately.
+1. Enter the management password.
+2. Choose the date in Indian time.
+3. Click **Load / refresh slots**.
+4. A checked box means blocked. Tick an empty box to create a manual block. Untick a manual or weekly-schedule block to open that specific time. On Saturday, untick the desired times to make that date selectable; Appointment requires a start on the hour or half-hour.
+5. For a slot blocked by a booking, unticking prompts you to cancel the relevant booking(s) and release their complete automatic window. This preserves any other booking's window and any separate manual blocks.
+6. Cancellation updates availability immediately. It does not send a cancellation email; contact the client separately.
+7. Review the email delivery column: `sent` means SMTP acceptance, `failed` means email could not be confirmed, and `pending` means not yet confirmed. Follow up by contacting the client/booking owner using the original form email where available. D1 intentionally does not store contact details.
+8. Click **Sign out** when finished. The password is held only in the page's memory and is cleared on sign-out or reload.
 
-Review the email status column: `sent` means SMTP acceptance, `failed` means delivery could not be confirmed, and `pending` means it is not yet confirmed. SMTP acceptance does not guarantee inbox delivery. D1 intentionally does not store client contact details; use the original form email where available.
-
-Click **Sign out** when finished. The management password is held only in page memory and cleared on sign-out or reload. All management reads and writes require server-side authentication; knowing the page URL is insufficient.
-
-### How manual settings are stored
-
-| Record | Meaning |
-| --- | --- |
-| Ordinary slot, `manual = 0` | Follow the weekly schedule |
-| Ordinary slot, `manual = 1` | Manually closed |
-| Ordinary slot, `manual = -1` | Explicitly opened |
-| Reserved day row, `minute = -1`, `manual = 1` | Whole day blocked |
-| Reserved day row, `minute = -1`, `manual = 0` | No whole-day override |
-
-The day row is separate from the 96 ordinary slot rows. These settings use the existing schema; no extra migration is required specifically for Saturday openings or whole-day blocking. A first deployment still requires Step 4.
+The management page is unlisted and has no-index metadata. All management reads and writes require the password server-side; knowing the URL is not enough. The public availability API exposes times and availability only.
 
 ## 8. Acceptance checks before using real bookings
 
@@ -169,40 +144,11 @@ Use test details and dates at least two hours ahead:
 6. Verify earlier-than-two-hour times are disabled on both forms and cannot be submitted by altering the request.
 7. Check Contact and Appointment emails arrive in the hello inbox, including voice recording if used. Open the Appointment PDF.
 8. Cancel test bookings through management, then check the times become available unless another block applies.
-9. Block a whole day by clicking its calendar date. Confirm both public calendars grey it out, individual management checkboxes are locked, and a previously opened form cannot reserve it. Existing bookings must remain recorded. Click the date again and confirm the previous schedule, manual settings and booking buffers return. Repeat on a Saturday: removing the day block alone must not open Saturday hours.
-10. Submit a successful Contact, then refresh or reopen the same browser: another Contact submission that Indian calendar day must be blocked. Repeat independently for Appointment. One successful Contact and one successful Appointment are allowed, because the limits are separate. Verify the next Indian day resets each limit.
-11. Open the same available slot in two browsers. Reserve it in one, then submit the stale selection in the other. The second form must display “That time has just become unavailable. Please select another slot.” It must retain the entered details, refresh availability and allow selection and submission of another slot. This rejection must not consume the daily allowance. Check both forms.
-12. Check desktop, mobile and tablet. Existing page CSS and artwork were not changed, but live device testing is still needed.
-
-## 9. Updating an existing deployment later
-
-Use the same Cloudflare account, existing Worker name and existing D1 UUID. Skip database creation: creating a different database would leave previous bookings behind.
-
-Run Steps 2–5 with the updated source: install, build, regenerate `wrangler.cloudflare.json`, apply pending migrations and deploy. Regenerate the configuration after every build. Keep existing secrets and SMTP overrides; do not replace them unless changing their values intentionally. Keep the existing domain binding. Then run the acceptance checks relevant to the update.
+9. Check desktop, mobile and tablet. Existing page CSS and artwork were not changed, but live device testing is still needed.
 
 ## Booking versus email success
 
 A slot is reserved immediately before email delivery. Appointment reservation still does not constitute payment confirmation. If SMTP fails or times out after reservation, the form shows that the slot is reserved but asks the visitor to contact you directly. The reservation is retained to prevent uncertain email delivery from opening the slot to another client. The same submission reference cannot create a second booking or send a second email. Review failed/pending notifications in management; release the reservation manually if required.
-
-## Submission limits and safe retries
-
-Each browser allows one successful Contact submission and one successful Appointment submission per Indian calendar day. These are separate limits, retained through refresh/reopening using browser storage. They reset at Indian midnight. Supported browsers also coordinate same-form submissions between tabs.
-
-A rejected slot conflict or validation error does not consume the daily allowance. The visitor can correct the selection and submit again. A successfully reserved slot does consume the allowance even if email delivery or Appointment PDF generation subsequently fails. Retrying the same submission reference does not create another booking or resend email.
-
-This is a browser restriction, not an identity-based server restriction. Another device/browser, private browsing or clearing storage can bypass it; persistence is limited if browser storage is unavailable.
-
-## Troubleshooting
-
-| Symptom | Check |
-| --- | --- |
-| Management login unavailable | Ensure `BOOKING_ADMIN_PASSWORD` is set on the correct Worker and has at least 20 characters. |
-| Availability fails to load | Verify uppercase `DB`, the correct D1 UUID and applied migrations. Check Worker logs for the underlying error. |
-| Old interface after an update | Confirm the revised source was built and deployed, and the domain points to the intended Worker. |
-| Saturday remains grey | Remove any whole-day block and open a usable start for that form; it must be at least two hours ahead and free of booking conflicts. |
-| A released slot remains blocked | Check other bookings, individual blocks, whole-day overrides and the two-hour rule. |
-| Slot-conflict message | Select another available slot and retry; the failed attempt does not use the daily allowance. |
-| Reservation saved but no email | Check notification status, SMTP secret/settings and Namecheap aliases. Do not assume the slot is free or submit a duplicate booking. |
 
 ## Database inspection on Cloudflare
 
@@ -217,7 +163,7 @@ FROM bookings ORDER BY date, minute;
 
 ## Verification completed
 
-TypeScript validation and production build passed. Integration checks used local Cloudflare D1/Miniflare with the real schema and atomic conditional insert and covered both booking examples, shared blocking, concurrency, idempotency, the new weekly schedule, Friday morning slots, Saturday checkbox opening/closing, midnight buffer carryover, schedule validation, management authentication, whole-day blocking/reopening, manual release, overlapping blocks, daily submission limits, conflict retries and email-failure reservation handling. Fourteen simulated SMTP checks also passed. No real booking email was sent. The private managed preview was deployed successfully. Deployment into your external Cloudflare account, its D1 binding, real Namecheap delivery and actual device UI still require the acceptance checks above.
+TypeScript validation and production build passed. Integration checks used local Cloudflare D1/Miniflare with the real schema and atomic conditional insert and covered both booking examples, shared blocking, concurrency, idempotency, the new weekly schedule, Friday morning slots, Saturday checkbox opening/closing, midnight buffer carryover, schedule validation, management authentication, manual release, overlapping blocks and email-failure reservation handling. Fourteen simulated SMTP checks also passed. No real booking email was sent. Live Cloudflare deployment, your account's D1 binding, Namecheap delivery and actual device UI require the acceptance checks above.
 
 Official references:
 
