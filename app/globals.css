@@ -646,17 +646,38 @@ img{max-width:100%}
 /* Slot-conflict submission feedback in both booking forms. */
 .form-status.slot-unavailable-error{color:#8b0000}
 
-/* Tablet-only footer: centre email below logo and complete both divider lines. */
+/* Tablet-only footer: no internal divider lines; email centred beneath logo. */
 @media(min-width:601px) and (max-width:900px){
-  .site-footer>.footer-item{position:relative;border-top-color:transparent}
-  .site-footer>.footer-item::before{content:"";position:absolute;top:0;border-top:1px solid #9fb9bc;pointer-events:none}
-  .site-footer>.footer-company::before{left:calc(-100% - 12px);right:0}
-  .site-footer>a.footer-item{justify-content:center;padding-left:8px;padding-right:56px}
-  .site-footer>a.footer-item::before{left:0;right:calc(-100% - 12px)}
+  .site-footer>.footer-item{position:relative;border-top:0}
+  .site-footer>.footer-item::before{content:none}
+  .site-footer>a.footer-item{grid-column:1;justify-content:center;justify-self:stretch;padding-left:8px;padding-right:8px;transform:translateX(10px)}
 }
 
 /* About desktop and tablet: one line of space before the photo and description. */
 @media(min-width:601px){
   .page-about .about-grid>.about-photo,
   .page-about .about-grid>.about-copy{margin-top:20px}
+}
+
+/* Contact: single-selection counselling topic dropdown. */
+.page-contact .support-dropdown{display:flex;flex-direction:column;gap:8px;margin-top:19px;min-width:0}
+.page-contact .support-dropdown select{display:block;width:100%;max-width:100%;min-width:0;min-height:40px;padding:7px 28px 7px 8px;border:1px solid #b8d2f0;border-radius:3px;background:#fff;color:#15448b;font:inherit;cursor:pointer}
+.page-contact .support-dropdown select:focus{outline:2px solid #7aa7e8;outline-offset:1px}
+@media(max-width:600px){.page-contact .support-dropdown select{min-height:44px;font-size:16px}}
+
+/* Match the remaining Contact headings on mobile only. */
+@media(max-width:600px){
+  .page-contact #consultation-form>label:first-child>b,
+  .page-contact #consultation-form>.support-dropdown>b{font-size:16px}
+}
+
+.page-contact .voice-recorder .voice-status-ready{color:#0057ff}
+
+/* Both booking forms: blocked times remain visible and disabled. */
+.callback .time-select select option.blocked-time-slot:disabled{color:#b8b8b8;background-color:#f5f5f5;text-decoration:none}
+
+/* Appointment: match name and time headings on mobile only. */
+@media(max-width:600px){
+  .page-appointment #appointment-form>label:first-child>b,
+  .page-appointment .appointment-callback>label:nth-child(2)>b{font-size:16px}
 }

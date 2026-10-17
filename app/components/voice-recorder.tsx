@@ -50,6 +50,6 @@ export function VoiceRecorder({disabled, onChange, onBusyChange, resetKey}: {
       {url&&<button type="button" className="voice-delete" disabled={disabled} onClick={clear}><Trash2 size={16}/> Delete</button>}
     </div>
     {url&&<audio controls src={url} aria-label="Play your voice recording"/>}
-    <p className={message?"voice-status voice-status-updated":"voice-status"} role="status">{message||"Allow microphone access when prompted. Your recording will be sent with this form."}</p>
+    <p className={message.startsWith("Recording ready.")?"voice-status voice-status-ready":message?"voice-status voice-status-updated":"voice-status"} role="status">{message||"Allow microphone access when prompted. Your recording will be sent with this form."}</p>
   </section>;
 }

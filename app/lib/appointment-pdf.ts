@@ -39,7 +39,7 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
   doc.text("Appointment details",margin,y);y+=14;
 
   const contactDetails=Object.entries(details).filter(([key,value])=>key.startsWith("contact_")&&value.trim()).map(([key,value])=>key.slice(8)+": "+value.trim()).join("; ");
-  const rows=[["Name / alias",details.name],["Confirmation email",details["confirmation email"]],["Contact method",details["contact methods"]],["Contact details",contactDetails],["Appointment date",details["appointment date"]],["Appointment time",`${details["appointment time (Indian Time)"]||"Not provided"} (Indian Time)`],["Appointment Duration","1 Hour"]];
+  const rows=[["Name / alias",details.name],["Confirmation email",details["confirmation email"]],["Contact method",details["contact methods"]],["Contact details",contactDetails],["Appointment date",details["appointment date"]],["Appointment time",`${details["appointment time (Indian Time)"]||"Not provided"} (Indian Time)`],["Session Duration","1 Hour"]];
   for(const [index,[label,value]] of rows.entries()){
     doc.setFont("JessSans","normal");doc.setFontSize(10.5);
     const lines:string[]=doc.splitTextToSize(normalized(value||"Not provided"),contentWidth-176);
@@ -98,10 +98,10 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
     doc.setDrawColor(215,223,221);doc.setLineWidth(.6);doc.line(margin,footerTop,width-margin,footerTop);
     doc.addImage(appointmentPdfLogo,"PNG",margin,footerTop+19,150,150*729/2157,"Logo-Final","FAST");
     doc.setFont("JessSans","bold");doc.setFontSize(10);doc.setTextColor(...green);
-    doc.text("Jess Counselling LLP",margin+170,footerTop+30);
+    doc.text("Jess Counselling LLP",width/2,footerTop+30,{align:"center"});
     doc.setFont("JessSans","normal");doc.setFontSize(7);
-    doc.text(["Established as a limited liability","entity in India"],margin+170,footerTop+44,{lineHeightFactor:1.3});
-    doc.setFontSize(8);doc.textWithLink("hello@jesscounselling.online",margin+170,footerTop+69,{url:"mailto:hello@jesscounselling.online"});
+    doc.text(["Established as a limited liability","entity in India"],width/2,footerTop+44,{lineHeightFactor:1.3,align:"center"});
+    doc.setFontSize(8);doc.textWithLink("hello@jesscounselling.online",(width-doc.getTextWidth("hello@jesscounselling.online"))/2,footerTop+69,{url:"mailto:hello@jesscounselling.online"});
     doc.addImage(appointmentPdfFooterScript,"PNG",width-margin-82,footerTop+14,82,82*258/400,"Footer-script","FAST");
     doc.setFontSize(7);doc.setTextColor(...muted);
     const copyright="© 2026 Jess Counselling LLP. All rights reserved. ";
