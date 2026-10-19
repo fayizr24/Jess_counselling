@@ -1,14 +1,14 @@
 # Jess Counselling: Cloudflare booking setup
 
-Prepared 10 October 2026. All booking dates and times use Indian Standard Time (Asia/Kolkata, UTC+05:30), irrespective of the visitor's device timezone.
+Updated 18 October 2026. All booking dates and times use Indian Standard Time (Asia/Kolkata, UTC+05:30), irrespective of the visitor's device timezone.
 
 ## What is programmed
 
-- Contact: Sunday–Thursday 7:30 PM–10:30 PM; Friday 8:00 AM–10:00 AM and 7:30 PM–10:30 PM; 15-minute start times, including both endpoints. Saturday closed by default. A booking blocks its start and the adjacent 15-minute points.
-- Appointment: Sunday–Thursday 7:30 PM–10:30 PM; Friday 8:00 AM–10:00 AM and 7:30 PM–10:30 PM; 30-minute start times, including both endpoints. Saturday closed by default. A booking blocks all 15-minute points from one hour before through one hour after its start, including both boundaries. This follows the requested example; it is a window around the start, not an extra hour after the one-hour session ends.
+- Contact: Sunday–Thursday 7:30 PM–10:30 PM; Friday 10:30 AM–12:30 PM and 7:30 PM–10:30 PM; 15-minute start times, including both endpoints. Saturday closed by default. A booking blocks its start and the adjacent 15-minute points.
+- Appointment: Sunday–Thursday 7:30 PM–10:30 PM; Friday 10:30 AM–12:30 PM and 7:30 PM–10:30 PM; 30-minute start times, including both endpoints. Saturday closed by default. A booking blocks all 15-minute points from 60 minutes before through 75 minutes after its start, including both boundaries. The 60-minute backward and 75-minute forward boundaries are inclusive.
 - Both forms require a start at least two hours ahead. Exactly two hours is accepted; anything earlier is unavailable. Client display uses the server's time, and submission validates again.
 - One shared D1 database. A date has 96 quarter-hour points, materialized when first booked. The management page shows all 96 points even on dates with no stored rows yet. Manual blocks create the relevant rows immediately.
-- The management page retains all 96 quarter-hour points. Form dropdowns show only the default scheduled hours and explicit manual openings; closed Saturday evening hours are not listed unless opened. Booked/manually blocked starts inside the scheduled hours remain visible but disabled. Calendar dates and times are read from D1. A Saturday becomes selectable only when at least one manually opened start remains available for that form. Slots are read when a date is selected and refreshed every 15 seconds and on focus. Blocked options remain visible but disabled. Availability is rechecked atomically at submission, using an atomic conditional insert inside a transaction. A losing simultaneous request receives an unavailable-slot message.
+- The management page retains all 96 quarter-hour points. Form dropdowns show only the default scheduled hours and explicit manual openings; closed Saturday evening hours are not listed unless opened. Booked/manually blocked starts inside the scheduled hours remain visible but disabled. Calendar dates and times are read from D1. A Saturday becomes selectable only when at least one manually opened start remains available for that form. Slots are read when a date is selected and refreshed every 10 seconds and on focus. Blocked options remain visible but disabled. Availability is rechecked atomically at submission, using an atomic conditional insert inside a transaction. A losing simultaneous request receives an unavailable-slot message.
 - A proposed booking also cannot put an existing booking inside its own blocking window. Example: a Contact at 8 PM also prevents an Appointment at 8:30 PM, because that appointment's one-hour-before block would cover the existing Contact.
 - Adjacent buffers may overlap if neither booking start violates the other booking's window. Cancelling one booking preserves blocks contributed by the other.
 - Manual checkboxes show weekly closures as checked, including all Saturday points. Unticking explicitly opens that start time for the chosen date, including Saturday or a time outside default hours. Contact may use any opened quarter-hour start; Appointment only uses opened starts on the hour or half-hour. The two-hour rule, daily browser limits and all booking buffers still apply. Openings are date-specific; other Saturdays stay closed. Re-ticking closes the time again. Internally booking_slots.manual is 0 for weekly default, 1 for manually closed and -1 for explicitly opened. Existing tables support these values; no new database migration is required.
@@ -17,11 +17,10 @@ Prepared 10 October 2026. All booking dates and times use Indian Standard Time (
 
 ## Before starting
 
-Use the revised website source saved with these changes. The publishing ZIP dated 10 October before this change does not contain the new database programming. No new publishing ZIP was generated in this task. Request a complete publishing ZIP when you are ready to give the source to your publisher.
-
-The source is a Vinext application with server-side form handlers. It must run on a Cloudflare Worker; uploading only static HTML or client assets to Pages will not enable the booking database or SMTP. If your publisher already builds this application on Workers, update that same Worker. If you currently use a static Pages deployment, test the Worker first and then move the custom domain as explained below.
-
-Install a supported current Node.js (the source specifies Node >=22.13), and use the package manager/version declared in package.json. Do not put passwords in source files, HTML, Git or chat messages.
+This is the complete publishing source dated 18 October 2026. For an update,
+reuse the existing production Worker, D1 database and secrets. Create a database
+only if one does not already exist. Do not reset existing booking data.
+See START-HERE-PUBLISHING.md for the current rule summary and verification steps.
 
 ## 1. Create the D1 database
 

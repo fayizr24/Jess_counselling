@@ -39,9 +39,10 @@ async function fixture(steps, env = { SMTP_PASSWORD: 'test-only-password' }, sta
   const url = 'data:text/javascript;base64,' + Buffer.from(js).toString('base64') + '#' + Math.random();
   const module = await import(url);
   const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",existing:false}};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
-  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl));
+  const messagesUrl='data:text/javascript;base64,'+Buffer.from(ts.transpile(readFileSync('app/lib/booking-messages.ts','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022})).toString('base64');
+  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
   const route = await import('data:text/javascript;base64,' + Buffer.from(routeJs).toString('base64'));
-  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl));
+  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
   const appointment = await import('data:text/javascript;base64,' + Buffer.from(appointmentJs).toString('base64'));
   return { module, route, appointment, sent, steps, stats: () => ({ connected, closed }) };
 }

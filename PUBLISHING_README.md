@@ -54,9 +54,9 @@ See `CLOUDFLARE_BOOKING_SETUP.md` for the D1 setup, deployment commands and priv
 Both handlers use the same hello mailbox password. The previous RESEND_API_KEY
 and FORM_FROM_EMAIL settings are no longer used by either form. Their existing
 HTML email layouts and plain-text alternatives are retained. Email subjects are
-`[name]: New consultation request` for Contact and
+`[name]: Free Consult` (append ` (Voice attached)` for a validated voice attachment) for Contact and
 `[name]: New appointment booking` for Appointment.
-Appointment submission has no Contact-form daily browser restriction.
+Both forms have separate one-successful-submission-per-Indian-day browser limits. Successful buttons stay clickable until a second click changes them to Already submitted today and locks further clicks. Acknowledgements persist across refresh; Appointment PDF links are recreated from the saved confirmation details.
 
 ## Verification
 
@@ -68,9 +68,9 @@ acceptance and timeout handling without sending mail.
 ## Build and run
 
 ```bash
-npm install
-npm run build
-npm start
+pnpm install --frozen-lockfile
+pnpm run build
+# Then follow CLOUDFLARE_BOOKING_SETUP.md to configure DB and deploy the Worker.
 ```
 
 Connect the domain `jesscounselling.online` to the hosting deployment. The unlisted appointment page will then be available directly at:
