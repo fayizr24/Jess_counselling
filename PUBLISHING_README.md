@@ -3,15 +3,14 @@
 ## Sitemap (updated 10 October 2026)
 
 `public/sitemap.xml` is included and served at `/sitemap.xml` after deployment.
-It lists Home, About, Services and Contact only. Appointment and Disclaimer
-remain in the website pack but are excluded from the sitemap as requested.
+It lists Home, About, Services, Contact and Appointment. /apt and Disclaimer are excluded. /appointment permits index/follow; /apt is noindex/nofollow and has no navigation link.
 The sitemap uses the production domain `https://jesscounselling.online`.
 Submit the deployed sitemap URL to Google Search Console and Bing Webmaster Tools.
 
 This package contains the complete responsive website source, including:
 
 - Home, About, Services and Contact pages
-- The unlisted Appointment page at `/appointment`
+- The Appointment page at `/appointment` and staff booking page at `/apt`
 - Contact and appointment email handlers
 - All approved images and graphics
 - Mobile and tablet layouts
@@ -54,9 +53,9 @@ See `CLOUDFLARE_BOOKING_SETUP.md` for the D1 setup, deployment commands and priv
 Both handlers use the same hello mailbox password. The previous RESEND_API_KEY
 and FORM_FROM_EMAIL settings are no longer used by either form. Their existing
 HTML email layouts and plain-text alternatives are retained. Email subjects are
-`[name]: Free Consult` (append ` (Voice attached)` for a validated voice attachment) for Contact and
+`[name]: New consultation request` for Contact and
 `[name]: New appointment booking` for Appointment.
-Both forms have separate one-successful-submission-per-Indian-day browser limits. Successful buttons stay clickable until a second click changes them to Already submitted today and locks further clicks. Acknowledgements persist across refresh; Appointment PDF links are recreated from the saved confirmation details.
+Appointment submission has no Contact-form daily browser restriction.
 
 ## Verification
 
@@ -68,9 +67,9 @@ acceptance and timeout handling without sending mail.
 ## Build and run
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm run build
-# Then follow CLOUDFLARE_BOOKING_SETUP.md to configure DB and deploy the Worker.
+npm install
+npm run build
+npm start
 ```
 
 Connect the domain `jesscounselling.online` to the hosting deployment. The unlisted appointment page will then be available directly at:

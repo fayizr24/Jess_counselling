@@ -43,13 +43,13 @@ export function VoiceRecorder({disabled, onChange, onBusyChange, resetKey}: {
   }
   return <section className="voice-recorder" aria-labelledby="voice-recording-title">
     <b id="voice-recording-title">Voice Recording (Optional):</b>
-    <p>Prefer to speak? Record your counselling requirements in Malayalam or English (up to 2 minutes).</p>
+    <p>Record your concerns and needs in Malayalam or English (up to 2 minutes)</p>
     <div className="voice-controls">
       <button type="button" className="voice-button" disabled={disabled||phase==="starting"||phase==="finishing"} onClick={phase==="recording"?stop:start}>{phase==="recording"?<Square size={16}/>:<Mic size={16}/>} {phase==="recording"?"Stop Recording":phase==="starting"?"Opening microphone…":phase==="finishing"?"Saving recording…":url?"Record Again":"Start Recording"}</button>
       <span className={phase==="recording"?"voice-timer recording":"voice-timer"} role="timer" aria-label="Recording duration">{String(Math.floor(seconds/60)).padStart(2,"0")}:{String(seconds%60).padStart(2,"0")} / 02:00</span>
       {url&&<button type="button" className="voice-delete" disabled={disabled} onClick={clear}><Trash2 size={16}/> Delete</button>}
     </div>
     {url&&<audio controls src={url} aria-label="Play your voice recording"/>}
-    <p className={message.startsWith("Recording ready.")?"voice-status voice-status-ready":message?"voice-status voice-status-updated":"voice-status"} role="status">{message||"Allow microphone access when prompted. Your recording will be sent with this form."}</p>
+    <p className={message.startsWith("Recording ready.")?"voice-status voice-status-ready":message?"voice-status voice-status-updated":"voice-status voice-status-guidance"} role="status">{message||"Allow microphone access when prompted. Your recording will be sent with this form."}</p>
   </section>;
 }

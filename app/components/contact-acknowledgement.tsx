@@ -22,6 +22,6 @@ export function ContactAcknowledgement({details}:{details:ReturnType<typeof crea
       <dt>Contact method</dt><dd>{contact.method}</dd>
       <dt>Contact details</dt><dd>{contact.detail}</dd>
     </div>)}</dl>
-    <p className="contact-acknowledgement-reschedule">For rescheduling or cancellation, please contact us by email or WhatsApp.</p>
+    <p className="contact-acknowledgement-reschedule" style={{color:"#0057ff"}}>For rescheduling or cancellation, please contact us by email or WhatsApp.</p>
   </section>;
 }

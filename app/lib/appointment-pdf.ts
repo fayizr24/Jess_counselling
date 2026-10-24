@@ -23,9 +23,9 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
 
   const pageHeader=()=>{
     doc.setFillColor(...cream);doc.rect(0,0,width,height,"F");
-    doc.setFillColor(...green);doc.rect(0,0,width,111,"F");
+    doc.setFillColor(220,227,189);doc.rect(0,0,width,111,"F");
     doc.setFillColor(255,255,255);doc.roundedRect(margin,14,260,83,5,5,"F");
-    doc.addImage(appointmentPdfLogo,"PNG",margin+7,14,246,246*729/2157,"Logo-Final","FAST");
+    doc.addImage(appointmentPdfLogo,"PNG",margin+7,14,246,246*685/2048,"Logo-with-boxes","FAST");
     const titleX=width-margin-227;
     doc.setFillColor(...yellow);doc.roundedRect(titleX,41,227,29,5,5,"F");
     doc.setTextColor(...ink);doc.setFont("JessSans","normal");doc.setFontSize(14);
@@ -40,6 +40,7 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
 
   const contactDetails=Object.entries(details).filter(([key,value])=>key.startsWith("contact_")&&value.trim()).map(([key,value])=>key.slice(8)+": "+value.trim()).join("; ");
   const rows=[["Name / alias",details.name],["Confirmation email",details["confirmation email"]],["Contact method",details["contact methods"]],["Contact details",contactDetails],["Appointment date",details["appointment date"]],["Appointment time",`${details["appointment time (Indian Time)"]||"Not provided"} (Indian Time)`],["Session Duration","1 Hour"]];
+  if((details["contact methods"]||"").split(",").some(method=>method.trim()==="Google Meet")&&details["Google Meet WhatsApp or email"]?.trim())rows.splice(4,0,["WhatsApp / email (Meet)",details["Google Meet WhatsApp or email"].trim()]);
   for(const [index,[label,value]] of rows.entries()){
     doc.setFont("JessSans","normal");doc.setFontSize(10.5);
     const lines:string[]=doc.splitTextToSize(normalized(value||"Not provided"),contentWidth-176);
@@ -94,10 +95,10 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
   for(let page=1;page<=pages;page++){
     doc.setPage(page);
     const footerTop=height-110;
-    doc.setFillColor(255,255,255);doc.rect(0,footerTop,width,110,"F");
+    doc.setFillColor(240,243,228);doc.rect(0,footerTop,width,110,"F");
     doc.setDrawColor(215,223,221);doc.setLineWidth(.6);doc.line(margin,footerTop,width-margin,footerTop);
     doc.addImage(appointmentPdfLogo,"PNG",margin,footerTop+19,150,150*729/2157,"Logo-Final","FAST");
-    doc.setFont("JessSans","bold");doc.setFontSize(10);doc.setTextColor(...green);
+    doc.setFont("JessSans","bold");doc.setFontSize(10);doc.setTextColor(0,75,54);
     doc.text("Jess Counselling LLP",width/2,footerTop+30,{align:"center"});
     doc.setFont("JessSans","normal");doc.setFontSize(7);
     doc.text(["Established as a limited liability","entity in India"],width/2,footerTop+44,{lineHeightFactor:1.3,align:"center"});

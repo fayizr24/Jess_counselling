@@ -1,3 +1,4 @@
+import {createAppointmentPdfBlob} from "../../lib/appointment-pdf";
 import {EMAIL_WARNING} from "../../lib/booking-messages";
 import {reserve,notificationResult,bookingError} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail } from "../../lib/namecheap-email";
@@ -11,6 +12,8 @@ const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
 
 export async function POST(request:Request){
   const form=await request.formData();
+  const googleMeetSelected=String(form.get("contact methods")||"").split(",").some(method=>method.trim()==="Google Meet");
+  if(googleMeetSelected&&!String(form.get("Google Meet WhatsApp or email")||"").trim())return Response.json({error:"Please provide your WhatsApp number or email for Google Meet."},{status:400});
   try {
     getNamecheapConfiguration("appointment");
   } catch (error) {
@@ -25,7 +28,7 @@ export async function POST(request:Request){
   const email=escapeHtml(form.get("confirmation email"));
   const methods=String(form.get("contact methods")||"Not provided");
   const contactRows=methods.split(",").map(method=>method.trim()).filter(Boolean).map(method=>{
-    const detail=escapeHtml(form.get("contact_"+method));
+    const detail=escapeHtml(form.get("contact_"+method))+(method==="Google Meet"?`<br/><span style="font-weight:400">WhatsApp or email: ${escapeHtml(form.get("Google Meet WhatsApp or email"))}</span>`:"");
     return `<tr><td style="padding:6px 0;color:#51636a;width:42%;vertical-align:top;">${escapeHtml(method)}</td><td style="padding:6px 0;color:#071a58;font-weight:600;vertical-align:top;">${detail}</td></tr>`;
   }).join("");
   const appointmentDate=escapeHtml(form.get("appointment date"));
@@ -41,9 +44,12 @@ export async function POST(request:Request){
   </table></td></tr></table></body></html>`;
 
   const rows:string[]=[];
-  form.forEach((value,label)=>rows.push(`${label}: ${String(value)}`));
+  form.forEach((value,label)=>{if(typeof value==="string")rows.push(`${label}: ${value}`)});
   try {
-    await sendNamecheapEmail({subject:`${form.get("name")}: New appointment booking`,html,text:rows.join("\n")}, "appointment");
+    const details:Record<string,string>={};form.forEach((value,key)=>{if(typeof value==="string")details[key]=value;});
+    const pdfBytes=new Uint8Array(await createAppointmentPdfBlob(details).arrayBuffer());
+    let pdfBinary="";for(let offset=0;offset<pdfBytes.length;offset+=16384)pdfBinary+=String.fromCharCode(...pdfBytes.subarray(offset,offset+16384));
+    await sendNamecheapEmail({subject:`${form.get("name")}: New appointment booking`,html,text:rows.join("\n"),attachment:{filename:"Jess-Counselling-Appointment-Request.pdf",contentType:"application/pdf",base64:btoa(pdfBinary)}}, "appointment");
   } catch {
     try {await notificationResult(reservation.id,'failed');}catch{}
     return Response.json({ok:true,bookingId:reservation.id,warning:EMAIL_WARNING});

@@ -42,7 +42,8 @@ async function fixture(steps, env = { SMTP_PASSWORD: 'test-only-password' }, sta
   const messagesUrl='data:text/javascript;base64,'+Buffer.from(ts.transpile(readFileSync('app/lib/booking-messages.ts','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022})).toString('base64');
   const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
   const route = await import('data:text/javascript;base64,' + Buffer.from(routeJs).toString('base64'));
-  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
+  const pdfFixtureUrl="data:text/javascript;base64,"+Buffer.from('export function createAppointmentPdfBlob(details){return new Blob(["%PDF-1.4\\n"+JSON.stringify(details)])}').toString("base64");
+  const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/appointment-pdf"',JSON.stringify(pdfFixtureUrl)).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
   const appointment = await import('data:text/javascript;base64,' + Buffer.from(appointmentJs).toString('base64'));
   return { module, route, appointment, sent, steps, stats: () => ({ connected, closed }) };
 }
@@ -126,6 +127,8 @@ test('Appointment sends from appointments alias using the hello login and recipi
   assert.match(f.sent.at(-1), /From: Jess Counselling Website <appointments@jesscounselling.online>/);
   const htmlPart = f.sent.at(-1).match(/Content-Type: text\/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
   assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /New Appointment Booking/);
+  assert.match(f.sent.at(-1), /Content-Type: application\/pdf/);
+  assert.match(f.sent.at(-1), /Content-Disposition: attachment; filename="Jess-Counselling-Appointment-Request.pdf"/);
 });
 test('Appointment with missing password returns 503 without connecting', async () => {
   const f = await fixture([], {});

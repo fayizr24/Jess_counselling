@@ -13,6 +13,8 @@ export async function POST(request:Request){
   if (Number(request.headers.get("content-length") || 0) > 6 * 1024 * 1024) return Response.json({error:"The recording is too large. Please record a shorter message."},{status:413});
   let form:FormData;
   try { form=await request.formData(); } catch { return Response.json({error:"The form could not be read. Please try again."},{status:400}); }
+  const googleMeetSelected=String(form.get("contact methods")||"").split(",").some(method=>method.trim()==="Google Meet");
+  if(googleMeetSelected&&!String(form.get("Google Meet WhatsApp or email")||"").trim())return Response.json({error:"Please provide your WhatsApp number or email for Google Meet."},{status:400});
   let attachment:EmailAttachment|undefined;
   const recording=form.get("voice recording");
   if (recording!==null) {
@@ -39,7 +41,7 @@ export async function POST(request:Request){
   const name=escapeHtml(form.get("name"));
   const methods=String(form.get("contact methods")||"Not provided");
   const contactRows=methods.split(",").map(method=>method.trim()).filter(Boolean).map(method=>{
-    const detail=escapeHtml(form.get("contact_"+method));
+    const detail=escapeHtml(form.get("contact_"+method))+(method==="Google Meet"?`<br/><span style="font-weight:400">WhatsApp or email: ${escapeHtml(form.get("Google Meet WhatsApp or email"))}</span>`:"");
     return `<tr><td style="padding:6px 0;color:#51636a;width:42%;vertical-align:top;">${escapeHtml(method)}</td><td style="padding:6px 0;color:#071a58;font-weight:600;vertical-align:top;">${detail}</td></tr>`;
   }).join("");
   const callbackDate=escapeHtml(form.get("callback date"));
