@@ -37,3 +37,9 @@ export function bookingError(error:unknown){return Response.json({error:error in
 export async function adminDay(date:string){const rows=await dayState(date);const dayBlocked=rows.some(r=>r.source==='day');return {date,dayBlocked,slots:Array.from({length:96},(_,i)=>{const minute=i*15;const defaultBlocked=!defaultSlot('contact',date,timeLabel(minute));const enabled=rows.some(r=>r.source==='allow'&&r.minute===minute);const bookings=rows.filter(r=>r.source==='booking'&&Math.abs(r.minute-minute)<=(r.minute>=minute?r.radius!:forwardRadiusFor(r.kind!)));const manual=rows.some(r=>r.source==='manual'&&r.minute===minute);return {minute,time:timeLabel(minute),manual,enabled,defaultBlocked,blocked:dayBlocked||manual||bookings.length>0||(defaultBlocked&&!enabled),bookings:bookings.map(r=>({id:r.id,kind:r.kind,time:timeLabel(((r.minute%1440)+1440)%1440),notification:r.notification}))};})};}
 
 export async function adminMonth(month:string){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new BookingError('Invalid month.',400);const result=await database().prepare('SELECT date FROM booking_slots WHERE date LIKE ? AND minute=-1 AND manual=1').bind(month+'-%').all<{date:string}>();return {month,blockedDates:result.results.map(r=>r.date)};}
+
+export async function adminBookingList(date:string){
+ if(!validDate(date))throw new BookingError('Please select a valid date.',400);
+ const rows=await database().prepare('SELECT id,minute,kind FROM bookings WHERE date=? AND active=1 ORDER BY minute,id').bind(date).all<{id:string;minute:number;kind:string}>();
+ return {date,bookings:rows.results.map(row=>({id:row.id,time:timeLabel(row.minute),type:row.kind==='contact'?'Free Consult':'Appointment'}))};
+}

@@ -1,13 +1,11 @@
-> Current rules and existing-database deployment: read START-HERE-PUBLISHING.md first. Reuse the existing Worker and D1 database; do not create a replacement database for this update.
-
 # Jess Counselling: Cloudflare booking setup
 
 Prepared 10 October 2026. All booking dates and times use Indian Standard Time (Asia/Kolkata, UTC+05:30), irrespective of the visitor's device timezone.
 
 ## What is programmed
 
-- Contact: Sunday–Thursday 7:30 PM–10:30 PM; Friday 10:30 AM–12:30 PM and 7:30 PM–10:30 PM; 15-minute start times, including both endpoints. Saturday closed by default. A booking blocks its start and the adjacent 15-minute points.
-- Appointment: Sunday–Thursday 7:30 PM–10:30 PM; Friday 10:30 AM–12:30 PM and 7:30 PM–10:30 PM; 30-minute start times, including both endpoints. Saturday closed by default. A booking blocks all 15-minute points from 60 minutes before through 75 minutes after its start, including both boundaries. This follows the requested example; it is a window around the start, not an extra hour after the one-hour session ends.
+- Contact: Sunday–Thursday 7:30 PM–10:30 PM; Friday 8:00 AM–10:30 AM and 7:30 PM–10:30 PM; 15-minute start times, including both endpoints. Saturday closed by default. A booking blocks its start and the adjacent 15-minute points.
+- Appointment: Sunday–Thursday 7:30 PM–10:30 PM; Friday 8:00 AM–10:30 AM and 7:30 PM–10:30 PM; 30-minute start times, including both endpoints. Saturday closed by default. A booking blocks all 15-minute points from one hour before through one hour after its start, including both boundaries. This follows the requested example; it is a window around the start, not an extra hour after the one-hour session ends.
 - Both forms require a start at least two hours ahead. Exactly two hours is accepted; anything earlier is unavailable. Client display uses the server's time, and submission validates again.
 - One shared D1 database. A date has 96 quarter-hour points, materialized when first booked. The management page shows all 96 points even on dates with no stored rows yet. Manual blocks create the relevant rows immediately.
 - The management page retains all 96 quarter-hour points. Form dropdowns show only the default scheduled hours and explicit manual openings; closed Saturday evening hours are not listed unless opened. Booked/manually blocked starts inside the scheduled hours remain visible but disabled. Calendar dates and times are read from D1. A Saturday becomes selectable only when at least one manually opened start remains available for that form. Slots are read when a date is selected and refreshed every 10 seconds and on focus. Blocked options remain visible but disabled. Availability is rechecked atomically at submission, using an atomic conditional insert inside a transaction. A losing simultaneous request receives an unavailable-slot message.
@@ -174,3 +172,6 @@ Official references:
 - https://developers.cloudflare.com/d1/wrangler-commands/
 - https://developers.cloudflare.com/workers/wrangler/commands/
 - https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
+
+## Daily booking list (25 October 2026)
+The new password-protected list button reads existing active bookings by date, showing day/date, time (Indian time) and Appointment / Free Consult. It uses the existing bookings table: no database migration, new table, fields or secrets are required. Client details remain email-only. Existing management display, blocking/unblocking, cancellations and booking rules are unchanged.

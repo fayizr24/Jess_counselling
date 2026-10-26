@@ -3,14 +3,14 @@
 ## Sitemap (updated 10 October 2026)
 
 `public/sitemap.xml` is included and served at `/sitemap.xml` after deployment.
-It lists Home, About, Services, Contact and Appointment. /apt and Disclaimer are excluded. /appointment permits index/follow; /apt is noindex/nofollow and has no navigation link.
+It lists Home, About, Services, Contact and Appointment. Disclaimer and the staff /apt page are excluded. /appointment is index/follow; /apt is noindex/nofollow.
 The sitemap uses the production domain `https://jesscounselling.online`.
 Submit the deployed sitemap URL to Google Search Console and Bing Webmaster Tools.
 
 This package contains the complete responsive website source, including:
 
 - Home, About, Services and Contact pages
-- The Appointment page at `/appointment` and staff booking page at `/apt`
+- Appointment at `/appointment` and staff booking at `/apt`
 - Contact and appointment email handlers
 - All approved images and graphics
 - Mobile and tablet layouts
@@ -53,9 +53,9 @@ See `CLOUDFLARE_BOOKING_SETUP.md` for the D1 setup, deployment commands and priv
 Both handlers use the same hello mailbox password. The previous RESEND_API_KEY
 and FORM_FROM_EMAIL settings are no longer used by either form. Their existing
 HTML email layouts and plain-text alternatives are retained. Email subjects are
-`[name]: New consultation request` for Contact and
+`[name]: Free Consult` (plus `(Voice attached)` when audio is attached) for Contact and
 `[name]: New appointment booking` for Appointment.
-Appointment submission has no Contact-form daily browser restriction.
+Contact and Appointment each have their own daily browser restriction resetting at Indian midnight. /apt bypasses daily restrictions and retains in-flight/idempotency protection.
 
 ## Verification
 
@@ -67,13 +67,13 @@ acceptance and timeout handling without sending mail.
 ## Build and run
 
 ```bash
-npm install
-npm run build
-npm start
+corepack pnpm install --frozen-lockfile
+corepack pnpm run build
+corepack pnpm start
 ```
 
 Connect the domain `jesscounselling.online` to the hosting deployment. The unlisted appointment page will then be available directly at:
 
 `https://jesscounselling.online/appointment`
 
-The Appointment page is excluded from the visible website navigation and includes a search-engine no-index instruction.
+Appointment remains outside the main navigation but is indexed and included in the sitemap. /apt is for manual access, absent from sitemap/navigation and noindex/nofollow.

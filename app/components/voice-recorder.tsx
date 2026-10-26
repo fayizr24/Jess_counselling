@@ -42,7 +42,7 @@ export function VoiceRecorder({disabled, onChange, onBusyChange, resetKey}: {
     } catch(error) { if(token!==generation.current)return;release();setPhase("idle");onBusyChange(false);setMessage(error instanceof DOMException&&error.name==="NotAllowedError"?"Microphone access was not allowed. Enable it in your browser settings, or use the text box above.":"Could not access your microphone. Please try again or use the text box above."); }
   }
   return <section className="voice-recorder" aria-labelledby="voice-recording-title">
-    <b id="voice-recording-title">Voice Recording (Optional):</b>
+    <b id="voice-recording-title">Voice Recording <span style={{color:"#0057ff"}}>(Optional)</span>:</b>
     <p>Record your concerns and needs in Malayalam or English (up to 2 minutes)</p>
     <div className="voice-controls">
       <button type="button" className="voice-button" disabled={disabled||phase==="starting"||phase==="finishing"} onClick={phase==="recording"?stop:start}>{phase==="recording"?<Square size={16}/>:<Mic size={16}/>} {phase==="recording"?"Stop Recording":phase==="starting"?"Opening microphone…":phase==="finishing"?"Saving recording…":url?"Record Again":"Start Recording"}</button>
