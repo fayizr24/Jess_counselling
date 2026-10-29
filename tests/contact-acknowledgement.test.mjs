@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import ts from 'typescript';
+const url=code=>'data:text/javascript;base64,'+Buffer.from(code).toString('base64');
+const schedule=url(ts.transpile(readFileSync('app/lib/booking-schedule.ts','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}));
+const code=ts.transpile(readFileSync('app/components/contact-acknowledgement.tsx','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}).replace('"../lib/booking-schedule"',JSON.stringify(schedule));
+const component=await import(url('const React={createElement:(type,props,...children)=>({type,props:props||{},children})};\n'+code));
+function flat(n){if(!n||typeof n!=='object')return [];if(Array.isArray(n))return n.flatMap(flat);return [n,...n.children.flatMap(flat)]}function text(n){if(n==null)return '';if(typeof n!=='object')return String(n);if(Array.isArray(n))return n.map(text).join('');return text(n.children);}
+test('shared acknowledgement renders the server Booking ID for both button modes',()=>{
+ for(const mode of ['mandatory','full']){const form=new FormData();form.set('submission mode',mode);form.set('booking id','untrusted-form-value');form.set('callback date','14 Oct 2030');form.set('callback time (Indian Time)','8:00 PM');form.set('contact methods','WhatsApp');form.set('contact_WhatsApp','123');const details=component.createContactAcknowledgementData(form,'1026-236');assert.equal(details.bookingId,'1026-236');assert.equal(details.submittedWithoutOptionalDetails,mode==='mandatory');const nodes=flat(component.ContactAcknowledgement({details})),id=nodes.find(n=>n.props.className==='contact-acknowledgement-booking-id');assert.equal(text(id),'Booking ID: 1026-236');assert.ok(text(nodes[0]).includes('8:00 PM'));assert.ok(text(nodes[0]).includes('14 Oct 2030'));assert.ok(!text(nodes[0]).includes('untrusted-form-value'));}
+});

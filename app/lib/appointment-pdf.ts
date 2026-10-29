@@ -39,8 +39,14 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
   doc.text("Appointment details",margin,y);y+=14;
 
   const contactDetails=Object.entries(details).filter(([key,value])=>key.startsWith("contact_")&&value.trim()).map(([key,value])=>key.slice(8)+": "+value.trim()).join("; ");
-  const rows=[["Name / alias",details.name],["Confirmation email",details["confirmation email"]],["Contact method",details["contact methods"]],["Contact details",contactDetails],["Appointment date",details["appointment date"]],["Appointment time",`${details["appointment time (Indian Time)"]||"Not provided"} (Indian Time)`],["Session Duration","1 Hour"]];
+  const rows=[["Name / alias",details.name],["Confirmation email",details["confirmation email"]],["Contact method",details["contact methods"]],["Contact details",contactDetails],["Appointment date",details["appointment date"]],["Appointment time",`${details["appointment time (Indian Time)"]||"Not provided"} (Indian Time)`]];
   if((details["contact methods"]||"").split(",").some(method=>method.trim()==="Google Meet")&&details["Google Meet WhatsApp or email"]?.trim())rows.splice(4,0,["WhatsApp / email (Meet)",details["Google Meet WhatsApp or email"].trim()]);
+  const appointmentType=(details["appointment type"]||"").trim();
+  if(appointmentType){
+    rows.splice(rows.findIndex(row=>row[0]==="Appointment date"),0,["Appointment Type",appointmentType]);
+  }
+  const suppliedBookingId=(details["booking id"]||"").trim();
+  if(suppliedBookingId)rows.splice(1,0,["Case ID",suppliedBookingId]);
   for(const [index,[label,value]] of rows.entries()){
     doc.setFont("JessSans","normal");doc.setFontSize(10.5);
     const lines:string[]=doc.splitTextToSize(normalized(value||"Not provided"),contentWidth-176);
@@ -55,13 +61,28 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
       doc.setFillColor(...green);doc.rect(margin,y,3,rowHeight,"F");
       doc.setFont("JessSans","bold");doc.setFontSize(9);doc.setTextColor(...muted);
       doc.text(label,margin+14,y+20);
-      doc.setFont("JessSans",index>=4?"bold":"normal");doc.setFontSize(10.5);doc.setTextColor(...ink);
+      doc.setFont("JessSans",["Appointment date","Appointment time","WhatsApp / email (Meet)","Appointment Type"].includes(label)?"bold":"normal");doc.setFontSize(10.5);doc.setTextColor(...ink);
       doc.text(part,margin+164,y+20,{lineHeightFactor:13/10.5});
       y+=rowHeight;cursor+=part.length;
       if(cursor<lines.length)newPage();
     }
   }
   y+=10;
+  const feeLines=[
+    "New Appointment (1 hour session): INR 990",
+    "Follow-up (1 hour session): INR 750",
+    "Follow-up (30 min session): INR 450",
+    "Follow-up (Clarifications session, 10 minutes): Free"
+  ];
+  doc.setFont("JessSans","normal");doc.setFontSize(10);
+  const feeText=feeLines.flatMap(line=>doc.splitTextToSize(line,contentWidth));
+  const feeHeight=25+feeText.length*14;
+  ensure(feeHeight);
+  doc.setFont("JessSans","bold");doc.setFontSize(11);doc.setTextColor(...green);
+  doc.text("Counselling Fee",margin,y+12);
+  doc.setFont("JessSans","normal");doc.setFontSize(10);doc.setTextColor(...ink);
+  doc.text(feeText,margin,y+29,{lineHeightFactor:1.4});
+  y+=feeHeight;
   doc.setFont("JessSans","normal");doc.setFontSize(9.5);
   doc.setFont("JessSans","bold");
   const payment=doc.splitTextToSize("Payment instructions will be sent to you separately. Appointments are confirmed only after receiving the payment.",contentWidth-30);

@@ -1,79 +1,9 @@
-# Jess Counselling — Publishing Notes
+# Publishing instructions
 
-## Sitemap (updated 10 October 2026)
+The current authoritative publishing guide is **START-HERE.md** in this folder.
+It covers the prebuilt Worker and static assets, editable source, existing D1
+binding and settings, all routes including /appointment and /apt, responsive
+changes, and the current acknowledgement PDF samples.
 
-`public/sitemap.xml` is included and served at `/sitemap.xml` after deployment.
-It lists Home, About, Services, Contact and Appointment. Disclaimer and the staff /apt page are excluded. /appointment is index/follow; /apt is noindex/nofollow.
-The sitemap uses the production domain `https://jesscounselling.online`.
-Submit the deployed sitemap URL to Google Search Console and Bing Webmaster Tools.
-
-This package contains the complete responsive website source, including:
-
-- Home, About, Services and Contact pages
-- Appointment at `/appointment` and staff booking at `/apt`
-- Contact and appointment email handlers
-- All approved images and graphics
-- Mobile and tablet layouts
-
-## Contact and Appointment forms: Namecheap Private Email
-
-Both forms send directly through `mail.privateemail.com:465` using
-TLS and authenticated SMTP. No Resend account or API key is used by either form.
-Their recipient is fixed as `hello@jesscounselling.online`; the existing HTML
-email design and plain-text alternative are retained.
-
-1. In Namecheap, create `free-consult@jesscounselling.online` and
-   `appointments@jesscounselling.online` as aliases of the
-   `hello@jesscounselling.online` mailbox before using those sender addresses.
-2. On the Cloudflare Worker serving the website, open Settings > Variables
-   and Secrets and add the following runtime settings:
-
-| Type | Name | Value |
-| --- | --- | --- |
-| Secret | `SMTP_PASSWORD` | The hello mailbox's password or application password |
-| Text | `SMTP_USER` | `hello@jesscounselling.online` |
-| Text (optional) | `SMTP_CONTACT_FROM_EMAIL` | `free-consult@jesscounselling.online` |
-| Text (optional) | `SMTP_APPOINTMENT_FROM_EMAIL` | `appointments@jesscounselling.online` |
-
-3. Deploy the changed settings and this updated source to the same Worker.
-4. Submit both forms using test details and check the hello inbox and Spam.
-
-The default SMTP username is hello. Contact messages use free-consult and
-Appointment messages use appointments. The optional per-form sender settings
-can override those defaults; each accepts a bare address without a display
-name or angle brackets. The old generic SMTP_FROM_EMAIL setting is ignored.
-The display name is Jess Counselling Website. Reply-To is the hello mailbox.
-Preserve the existing Namecheap MX, SPF and DKIM records. Cloudflare Email
-Routing is not required. Keep mailbox credentials out of source and browser code.
-
-Both handlers reserve the shared D1 slot before sending email. Missing SMTP settings fail before reservation. SMTP rejection or an uncertain timeout retains the booking, marks its email notification as failed, and returns a clear warning to contact the counsellor directly. Retrying the same submission reference does not send another email or create another booking. A reserved Appointment is still subject to the existing payment confirmation rule.
-
-See `CLOUDFLARE_BOOKING_SETUP.md` for the D1 setup, deployment commands and private checkbox management page.
-
-Both handlers use the same hello mailbox password. The previous RESEND_API_KEY
-and FORM_FROM_EMAIL settings are no longer used by either form. Their existing
-HTML email layouts and plain-text alternatives are retained. Email subjects are
-`[name]: Free Consult` (plus `(Voice attached)` when audio is attached) for Contact and
-`[name]: New appointment booking` for Appointment.
-Contact and Appointment each have their own daily browser restriction resetting at Indian midnight. /apt bypasses daily restrictions and retains in-flight/idempotency protection.
-
-## Verification
-
-`node --test tests/namecheap-email.test.mjs` checks TLS, authentication, alias
-sending, Unicode HTML/plain-text bodies, configuration and delivery failures,
-header injection protection, separate sender aliases, both form handlers,
-acceptance and timeout handling without sending mail.
-
-## Build and run
-
-```bash
-corepack pnpm install --frozen-lockfile
-corepack pnpm run build
-corepack pnpm start
-```
-
-Connect the domain `jesscounselling.online` to the hosting deployment. The unlisted appointment page will then be available directly at:
-
-`https://jesscounselling.online/appointment`
-
-Appointment remains outside the main navigation but is indexed and included in the sitemap. /apt is for manual access, absent from sitemap/navigation and noindex/nofollow.
+This package does not contain obsolete preview pages or historical publishing
+archives. Use the current guide rather than instructions from an older ZIP.

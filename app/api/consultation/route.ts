@@ -1,5 +1,7 @@
+import {acknowledgementExpiry} from "../../lib/submission-acknowledgement";
+import {ensureFollowups,followupExpiry,claimFollowup,finishFollowup} from "../../lib/consultation-followup";
 import {EMAIL_WARNING} from "../../lib/booking-messages";
-import {reserve,notificationResult,bookingError} from "../../lib/booking-store";
+import {reserve,notificationResult,bookingError,bookingReference} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail, type EmailAttachment } from "../../lib/namecheap-email";
 
 const escapeHtml=(value:FormDataEntryValue|null)=>String(value||"Not provided")
@@ -13,6 +15,11 @@ export async function POST(request:Request){
   if (Number(request.headers.get("content-length") || 0) > 6 * 1024 * 1024) return Response.json({error:"The recording is too large. Please record a shorter message."},{status:413});
   let form:FormData;
   try { form=await request.formData(); } catch { return Response.json({error:"The form could not be read. Please try again."},{status:400}); }
+  const mode=String(form.get("submission mode")||"full");
+  if(!['full','mandatory','optional'].includes(mode))return Response.json({error:'Invalid submission mode.'},{status:400});
+  if(mode==='mandatory'){form.delete('support requested');form.delete('other support');form.delete('additional information');form.delete('voice recording');}
+  if(mode==='optional'&&!String(form.get('support requested')||'').trim()&&!String(form.get('additional information')||'').trim()&&!form.get('voice recording'))return Response.json({error:'Please add optional details before submitting.'},{status:400});
+  if((mode!=="optional"||form.has("age"))&&!/^(1[89]|[2-6][0-9]|7[0-5])$/.test(String(form.get("age")||"")))return Response.json({error:'Please select your age (18 to 75).'},{status:400});
   const googleMeetSelected=String(form.get("contact methods")||"").split(",").some(method=>method.trim()==="Google Meet");
   if(googleMeetSelected&&!String(form.get("Google Meet WhatsApp or email")||"").trim())return Response.json({error:"Please provide your WhatsApp number or email for Google Meet."},{status:400});
   let attachment:EmailAttachment|undefined;
@@ -36,8 +43,21 @@ export async function POST(request:Request){
   }
 
   let reservation:Awaited<ReturnType<typeof reserve>>;
-  try { reservation=await reserve("contact",String(form.get("callback date")||""),String(form.get("callback time (Indian Time)")||""),request.headers.get("Idempotency-Key")||""); } catch(e){return bookingError(e);}
-  if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,warning:reservation.notification==='sent'?undefined:EMAIL_WARNING});
+  let optionalExpiresAt:number|undefined;
+  try {
+    if(mode==='optional'){
+      const id=String(form.get('booking id')||'');
+      const reference=await bookingReference(id);
+      const claimed=await claimFollowup(id,request.headers.get('Idempotency-Key')||'');
+      if(!claimed)return Response.json({ok:true,bookingId:id,bookingReference:reference,optionalSubmitted:true});
+      reservation={id,reference,existing:false,notification:'pending'};
+    }else{
+      if(mode==='mandatory')await ensureFollowups();
+      reservation=await reserve("contact",String(form.get("callback date")||""),String(form.get("callback time (Indian Time)")||""),request.headers.get("Idempotency-Key")||"",mode==='mandatory'?acknowledgementExpiry():0,String(form.get("name")||""));
+      if(mode==='mandatory')optionalExpiresAt=await followupExpiry(reservation.id);
+      if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalExpiresAt,warning:reservation.notification==='sent'?undefined:EMAIL_WARNING});
+    }
+  }catch(e){return bookingError(e);}
   const name=escapeHtml(form.get("name"));
   const methods=String(form.get("contact methods")||"Not provided");
   const contactRows=methods.split(",").map(method=>method.trim()).filter(Boolean).map(method=>{
@@ -52,8 +72,8 @@ export async function POST(request:Request){
   const section=(title:string,content:string)=>`<tr><td style="padding:0 28px 20px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#f4f7e8;border-radius:10px;"><tr><td style="padding:11px 16px;background:#6f7f32;color:#fff;font-size:16px;font-weight:700;border-radius:10px 10px 0 0;">${title}</td></tr><tr><td style="padding:14px 16px;">${content}</td></tr></table></td></tr>`;
 
   const html=`<!doctype html><html><body style="margin:0;padding:0;background:#eef7f2;font-family:Arial,Helvetica,sans-serif;color:#071a58;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#eef7f2;"><tr><td align="center" style="padding:24px 12px;"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:collapse;background:#fff;border:1px solid #d7dfdd;border-radius:14px;overflow:hidden;">
-    <tr><td style="padding:26px 28px 20px;background:#071a58;color:#fff;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;">Jess Counselling</div><span style="display:inline-block;margin-top:7px;padding:3px 9px;background:#fff3a3;color:#111;border-radius:4px;font-family:Georgia,'Times New Roman',serif;font-size:15px;">Online Counselling Services</span><div style="margin-top:14px;font-size:22px;font-weight:700;">New Consultation Request</div><div style="margin-top:5px;color:#dfe9df;font-size:14px;">A new request has been submitted through the website.</div></td></tr>
-    <tr><td style="padding:20px 28px 12px;"><div style="font-size:13px;color:#6f7f32;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Client</div><div style="margin-top:5px;font-size:22px;font-weight:700;color:#071a58;">${name}</div></td></tr>
+    <tr><td style="padding:26px 28px 20px;background:#071a58;color:#fff;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;">Jess Counselling</div><span style="display:inline-block;margin-top:7px;padding:3px 9px;background:#fff3a3;color:#111;border-radius:4px;font-family:Georgia,'Times New Roman',serif;font-size:15px;">Online Counselling Services</span><div style="margin-top:14px;font-size:22px;font-weight:700;">${mode==='optional'?'Optional Details for Existing Consultation':'New Consultation Request'}</div><div style="margin-top:5px;color:#dfe9df;font-size:14px;">${mode==='optional'?'Additional details for the existing booking below. No new booking has been created.':'A new request has been submitted through the website.'}</div></td></tr>
+    <tr><td style="padding:20px 28px 12px;"><div style="font-size:13px;color:#6f7f32;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Client</div><div style="margin-top:5px;font-size:22px;font-weight:700;color:#071a58;">${name}</div><div style="margin-top:8px">Age: <strong>${escapeHtml(form.get("age"))}</strong></div><div style="margin-top:8px;font-size:12px">Case ID: <strong>${escapeHtml(reservation.reference)}</strong></div></td></tr>
     ${section("Preferred Contact Method",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">${contactRows}</table>`)}
     ${section("Preferred Callback",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr><td style="padding:6px 0;color:#51636a;width:42%;">Date</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackDate}</td></tr><tr><td style="padding:6px 0;color:#51636a;">Time</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackTime} <span style="background:#fff3a3;color:#111;padding:1px 5px;">(Indian Time)</span></td></tr></table>`)}
     ${section("Areas of Support",`<div style="line-height:1.55;color:#071a58;">${support}</div>${otherSupport!=="Not provided"?`<div style="margin-top:8px;color:#51636a;">Other details: <strong style="color:#071a58;">${otherSupport}</strong></div>`:""}`)}
@@ -62,15 +82,17 @@ export async function POST(request:Request){
     <tr><td style="padding:2px 28px 26px;text-align:center;color:#66777b;font-size:12px;">This consultation request was submitted through the Jess Counselling website.<br><strong style="color:#071a58;">Malayalam / English</strong></td></tr>
   </table></td></tr></table></body></html>`;
 
-  const rows:string[]=[];
-  form.forEach((value,label)=>{if(typeof value==="string")rows.push(`${label}: ${value}`);});if(attachment)rows.push("Voice recording: attached");
+  const rows:string[]=[`Case ID: ${reservation.reference}`];
+  form.forEach((value,label)=>{if(typeof value==="string"&&label!=="booking id")rows.push(`${label}: ${value}`);});if(attachment)rows.push("Voice recording: attached");
   try {
-    await sendNamecheapEmail({subject:`${form.get("name")}: Free Consult${attachment?" (Voice attached)":""}`,html,text:rows.join("\n"),attachment});
+    await sendNamecheapEmail({subject:`${form.get("name")}: Free Consult${mode==='optional'?' — Optional Details':''}${attachment?" (Voice attached)":""}`,html,text:rows.join("\n"),attachment});
   } catch {
+    if(mode==='optional'){try{await finishFollowup(reservation.id,'failed');}catch{}return Response.json({error:'Optional details could not be emailed. Your booking is unchanged. Please try again or contact us directly.'},{status:503});}
     // Do not expose SMTP replies, mailbox passwords, or counselling content.
     try {await notificationResult(reservation.id,'failed');}catch{}
-    return Response.json({ok:true,bookingId:reservation.id,warning:EMAIL_WARNING});
+    return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalExpiresAt,warning:EMAIL_WARNING});
   }
+  if(mode==='optional'){try{await finishFollowup(reservation.id,'sent');}catch{return Response.json({error:'Your optional details were emailed, but delivery confirmation could not be saved. Please contact us directly rather than submitting again.'},{status:503});}return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalSubmitted:true});}
   try {await notificationResult(reservation.id,'sent');}catch{}
-  return Response.json({ok:true,bookingId:reservation.id});
+  return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalExpiresAt});
 }

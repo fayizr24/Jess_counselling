@@ -38,9 +38,11 @@ async function fixture(steps, env = { SMTP_PASSWORD: 'test-only-password' }, sta
   if (stalled) js = js.replace('const TIMEOUT_MS = 25000;', 'const TIMEOUT_MS = 20;');
   const url = 'data:text/javascript;base64,' + Buffer.from(js).toString('base64') + '#' + Math.random();
   const module = await import(url);
-  const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",existing:false}};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
+  const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",reference:"1026-236-MU",existing:false}};export async function bookingReference(){return "1026-236-MU"};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
   const messagesUrl='data:text/javascript;base64,'+Buffer.from(ts.transpile(readFileSync('app/lib/booking-messages.ts','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022})).toString('base64');
-  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
+  const followupUrl='data:text/javascript;base64,'+Buffer.from('export async function ensureFollowups(){};export async function followupExpiry(){return 0};export async function claimFollowup(){throw Error("not used by ordinary submissions")};export async function finishFollowup(){}').toString('base64');
+  const receiptUrl='data:text/javascript;base64,'+Buffer.from('export function acknowledgementExpiry(){return Date.now()+86400000}').toString('base64');
+  const routeJs = ts.transpile(routeSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/consultation-followup"',JSON.stringify(followupUrl)).replace('"../../lib/submission-acknowledgement"',JSON.stringify(receiptUrl)).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
   const route = await import('data:text/javascript;base64,' + Buffer.from(routeJs).toString('base64'));
   const pdfFixtureUrl="data:text/javascript;base64,"+Buffer.from('export function createAppointmentPdfBlob(details){return new Blob(["%PDF-1.4\\n"+JSON.stringify(details)])}').toString("base64");
   const appointmentJs = ts.transpile(appointmentSource, { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }).replace('"../../lib/appointment-pdf"',JSON.stringify(pdfFixtureUrl)).replace('"../../lib/namecheap-email"', JSON.stringify(url)).replace('"../../lib/booking-store"', JSON.stringify(bookingUrl)).replace('"../../lib/booking-messages"',JSON.stringify(messagesUrl));
@@ -86,7 +88,7 @@ test('PLAIN challenge is handled', async () => {
   assert.equal(f.steps.length, 0);
 });
 const request = () => {
-  const form = new FormData(); form.set('name', 'Test');
+  const form = new FormData(); form.set('name', 'Test'); form.set('age','35');
   return new Request('https://example.test/api/consultation', { method: 'POST', body: form });
 };
 test('missing password returns 503 without connecting', async () => {
@@ -111,7 +113,11 @@ test('SMTP acceptance returns existing ok response', async () => {
   const f = await fixture(deliverySteps());
   const response = await f.route.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking" });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference: "1026-236-MU" });
+  const encoded=f.sent.at(-1).match(/Content-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/g)||[];
+  const bodies=encoded.map(part=>Buffer.from(part.split('\r\n\r\n')[1].replace(/\s/g,''),'base64').toString('utf8'));
+  assert.ok(bodies.some(body=>body.startsWith('Booking ID: 1026-236-MU\n')));
+  assert.ok(bodies.some(body=>body.includes('Booking ID: <strong>1026-236-MU</strong>')));
 });
 test('stalled server times out and closes', async () => {
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password' }, true);
@@ -122,11 +128,17 @@ test('Appointment sends from appointments alias using the hello login and recipi
   const f = await fixture(deliverySteps('LOGIN', 'appointments'));
   const response = await f.appointment.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking" });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference:"1026-236-MU" });
   assert.equal(f.steps.length, 0);
   assert.match(f.sent.at(-1), /From: Jess Counselling Website <appointments@jesscounselling.online>/);
   const htmlPart = f.sent.at(-1).match(/Content-Type: text\/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
   assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /New Appointment Booking/);
+  assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /Booking ID: <strong>1026-236-MU<\/strong>/);
+  const plainPart=f.sent.at(-1).match(/Content-Type: text\/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
+  assert.match(Buffer.from(plainPart[1],'base64').toString(),/^Booking ID: 1026-236-MU\n/);
+  const attachment=f.sent.at(-1).match(/Content-Disposition: attachment; filename="Jess-Counselling-Appointment-Request.pdf"\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
+  assert.match(Buffer.from(attachment[1],'base64').toString(),/"booking id":"1026-236-MU"/);
+
   assert.match(f.sent.at(-1), /Content-Type: application\/pdf/);
   assert.match(f.sent.at(-1), /Content-Disposition: attachment; filename="Jess-Counselling-Appointment-Request.pdf"/);
 });
