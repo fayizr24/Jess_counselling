@@ -1,6 +1,6 @@
 import {acknowledgementExpiry} from "../../lib/submission-acknowledgement";
 import {ensureFollowups,followupExpiry,claimFollowup,finishFollowup} from "../../lib/consultation-followup";
-import {EMAIL_WARNING} from "../../lib/booking-messages";
+import {EMAIL_WARNING,notificationWarning} from "../../lib/booking-messages";
 import {reserve,notificationResult,bookingError,bookingReference} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail, type EmailAttachment } from "../../lib/namecheap-email";
 
@@ -55,7 +55,7 @@ export async function POST(request:Request){
       if(mode==='mandatory')await ensureFollowups();
       reservation=await reserve("contact",String(form.get("callback date")||""),String(form.get("callback time (Indian Time)")||""),request.headers.get("Idempotency-Key")||"",mode==='mandatory'?acknowledgementExpiry():0,String(form.get("name")||""));
       if(mode==='mandatory')optionalExpiresAt=await followupExpiry(reservation.id);
-      if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalExpiresAt,warning:reservation.notification==='sent'?undefined:EMAIL_WARNING});
+      if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,bookingReference:reservation.reference,optionalExpiresAt,warning:notificationWarning(reservation.notification)});
     }
   }catch(e){return bookingError(e);}
   const name=escapeHtml(form.get("name"));

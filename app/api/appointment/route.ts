@@ -1,5 +1,4 @@
-import {createAppointmentPdfBlob} from "../../lib/appointment-pdf";
-import {EMAIL_WARNING} from "../../lib/booking-messages";
+import {EMAIL_WARNING,notificationWarning} from "../../lib/booking-messages";
 import {reserve,notificationResult,bookingError} from "../../lib/booking-store";
 import { EmailConfigurationError, getNamecheapConfiguration, sendNamecheapEmail, type EmailAttachment } from "../../lib/namecheap-email";
 
@@ -41,10 +40,10 @@ export async function POST(request:Request){
   let reservation:Awaited<ReturnType<typeof reserve>>;
   try { reservation=await reserve("appointment",String(form.get("appointment date")||""),String(form.get("appointment time (Indian Time)")||""),request.headers.get("Idempotency-Key")||"",0,String(form.get("name")||""),0,generateReference,String(form.get("appointment type")||""),generateReference?"":String(form.get("booking id")||"")); } catch(e){return bookingError(e);}
   const generatedReference=generateReference?reservation.reference:"";
-  if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,...(generatedReference?{bookingReference:generatedReference}:{}),warning:reservation.notification==='sent'?undefined:EMAIL_WARNING});
+  if(reservation.existing)return Response.json({ok:true,bookingId:reservation.id,...(generatedReference?{bookingReference:generatedReference}:{}),warning:notificationWarning(reservation.notification)});
   if(generatedReference)form.set("booking id",generatedReference);
   const name=escapeHtml(form.get("name"));
-  const email=escapeHtml(form.get("confirmation email"));
+  const age=escapeHtml(form.get("age"));
   // Client-supplied reference for manual verification only; never looked up in D1.
   const suppliedBookingId=String(form.get("booking id")||"").trim();
   const methods=String(form.get("contact methods")||"Not provided");
@@ -58,7 +57,7 @@ export async function POST(request:Request){
 
   const html=`<!doctype html><html><body style="margin:0;padding:0;background:#eef7f2;font-family:Arial,Helvetica,sans-serif;color:#071a58;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#eef7f2;"><tr><td align="center" style="padding:24px 12px;"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:collapse;background:#fff;border:1px solid #d7dfdd;border-radius:14px;overflow:hidden;">
     <tr><td style="padding:26px 28px 20px;background:#071a58;color:#fff;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;">Jess Counselling</div><span style="display:inline-block;margin-top:7px;padding:3px 9px;background:#fff3a3;color:#111;border-radius:4px;font-family:Georgia,'Times New Roman',serif;font-size:15px;">Online Counselling Services</span><div style="margin-top:14px;font-size:22px;font-weight:700;">New Appointment Booking</div></td></tr>
-    <tr><td style="padding:20px 28px 12px;"><div style="font-size:13px;color:#6f7f32;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Client</div><div style="margin-top:5px;font-size:22px;font-weight:700;color:#071a58;">${name}</div><div style="margin-top:5px;color:#51636a;">Confirmation email: ${email}</div>${suppliedBookingId?`<div style="margin-top:5px;color:#51636a;">Case ID: <strong>${escapeHtml(suppliedBookingId)}</strong></div>`:""}</td></tr>
+    <tr><td style="padding:20px 28px 12px;"><div style="font-size:13px;color:#6f7f32;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Client</div><div style="margin-top:5px;font-size:22px;font-weight:700;color:#071a58;">${name}</div><div style="margin-top:5px;color:#51636a;">Age: <strong>${age}</strong></div>${suppliedBookingId?`<div style="margin-top:5px;color:#51636a;">Case ID: <strong>${escapeHtml(suppliedBookingId)}</strong></div>`:""}</td></tr>
     ${section("Counselling Contact Method",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">${contactRows}</table>`)}
     ${String(form.get("appointment type")||"").trim()?section("Appointment Type",escapeHtml(form.get("appointment type"))):""}
     ${section("Appointment",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr><td style="padding:6px 0;color:#51636a;width:42%;">Date</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${appointmentDate}</td></tr><tr><td style="padding:6px 0;color:#51636a;">Time</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${appointmentTime} <span style="background:#fff3a3;color:#111;padding:1px 5px;">(Indian Time)</span></td></tr></table>`)}
@@ -69,14 +68,10 @@ export async function POST(request:Request){
   </table></td></tr></table></body></html>`;
 
   const rows:string[]=suppliedBookingId?[`Case ID: ${suppliedBookingId}`]:[];
-  form.forEach((value,label)=>{if(typeof value==="string"&&label!=="booking id"&&label!=="booking source")rows.push(`${label}: ${value}`)});
+  form.forEach((value,label)=>{if(typeof value==="string"&&label!=="booking id"&&label!=="booking source"&&label!=="confirmation email")rows.push(`${label}: ${value}`)});
   if(voiceAttachment)rows.push("Voice recording: attached");
   try {
-    const details:Record<string,string>={};form.forEach((value,key)=>{if(typeof value==="string")details[key]=value;});
-    const pdfBytes=new Uint8Array(await createAppointmentPdfBlob(details).arrayBuffer());
-    let pdfBinary="";for(let offset=0;offset<pdfBytes.length;offset+=16384)pdfBinary+=String.fromCharCode(...pdfBytes.subarray(offset,offset+16384));
-    const pdfAttachment:EmailAttachment={filename:"Jess-Counselling-Appointment-Request.pdf",contentType:"application/pdf",base64:btoa(pdfBinary)};
-    await sendNamecheapEmail({subject:`${form.get("name")}: New appointment booking${voiceAttachment?" (Voice attached)":""}`,html,text:rows.join("\n"),attachment:voiceAttachment?[pdfAttachment,voiceAttachment]:pdfAttachment}, "appointment");
+    await sendNamecheapEmail({subject:`${form.get("name")}: Appointment`,html,text:rows.join("\n"),attachment:voiceAttachment}, "appointment");
   } catch {
     try {await notificationResult(reservation.id,'failed');}catch{}
     return Response.json({ok:true,bookingId:reservation.id,...(generatedReference?{bookingReference:generatedReference}:{}),warning:EMAIL_WARNING});

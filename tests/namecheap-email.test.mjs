@@ -38,7 +38,7 @@ async function fixture(steps, env = { SMTP_PASSWORD: 'test-only-password' }, sta
   if (stalled) js = js.replace('const TIMEOUT_MS = 25000;', 'const TIMEOUT_MS = 20;');
   const url = 'data:text/javascript;base64,' + Buffer.from(js).toString('base64') + '#' + Math.random();
   const module = await import(url);
-  const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",reference:"1026-236-MU",existing:false}};export async function bookingReference(){return "1026-236-MU"};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
+  const bookingUrl='data:text/javascript;base64,'+Buffer.from('export async function reserve(){return {id:"test-booking",reference:"100-1026-MU",existing:false}};export async function bookingReference(){return "100-1026-MU"};export async function notificationResult(){};export function bookingError(){return Response.json({error:"booking"},{status:503})}').toString('base64');
   const messagesUrl='data:text/javascript;base64,'+Buffer.from(ts.transpile(readFileSync('app/lib/booking-messages.ts','utf8'),{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022})).toString('base64');
   const followupUrl='data:text/javascript;base64,'+Buffer.from('export async function ensureFollowups(){};export async function followupExpiry(){return 0};export async function claimFollowup(){throw Error("not used by ordinary submissions")};export async function finishFollowup(){}').toString('base64');
   const receiptUrl='data:text/javascript;base64,'+Buffer.from('export function acknowledgementExpiry(){return Date.now()+86400000}').toString('base64');
@@ -113,11 +113,11 @@ test('SMTP acceptance returns existing ok response', async () => {
   const f = await fixture(deliverySteps());
   const response = await f.route.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference: "1026-236-MU" });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference: "100-1026-MU" });
   const encoded=f.sent.at(-1).match(/Content-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/g)||[];
   const bodies=encoded.map(part=>Buffer.from(part.split('\r\n\r\n')[1].replace(/\s/g,''),'base64').toString('utf8'));
-  assert.ok(bodies.some(body=>body.startsWith('Booking ID: 1026-236-MU\n')));
-  assert.ok(bodies.some(body=>body.includes('Booking ID: <strong>1026-236-MU</strong>')));
+  assert.ok(bodies.some(body=>body.startsWith('Case ID: 100-1026-MU\n')));
+  assert.ok(bodies.some(body=>body.includes('Case ID: <strong>100-1026-MU</strong>')));
 });
 test('stalled server times out and closes', async () => {
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password' }, true);
@@ -128,19 +128,16 @@ test('Appointment sends from appointments alias using the hello login and recipi
   const f = await fixture(deliverySteps('LOGIN', 'appointments'));
   const response = await f.appointment.POST(request());
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference:"1026-236-MU" });
+  assert.deepEqual(await response.json(), { ok: true, bookingId: "test-booking", bookingReference:"100-1026-MU" });
   assert.equal(f.steps.length, 0);
   assert.match(f.sent.at(-1), /From: Jess Counselling Website <appointments@jesscounselling.online>/);
   const htmlPart = f.sent.at(-1).match(/Content-Type: text\/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
   assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /New Appointment Booking/);
-  assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /Booking ID: <strong>1026-236-MU<\/strong>/);
+  assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /Case ID: <strong>100-1026-MU<\/strong>/);
   const plainPart=f.sent.at(-1).match(/Content-Type: text\/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
-  assert.match(Buffer.from(plainPart[1],'base64').toString(),/^Booking ID: 1026-236-MU\n/);
-  const attachment=f.sent.at(-1).match(/Content-Disposition: attachment; filename="Jess-Counselling-Appointment-Request.pdf"\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
-  assert.match(Buffer.from(attachment[1],'base64').toString(),/"booking id":"1026-236-MU"/);
-
-  assert.match(f.sent.at(-1), /Content-Type: application\/pdf/);
-  assert.match(f.sent.at(-1), /Content-Disposition: attachment; filename="Jess-Counselling-Appointment-Request.pdf"/);
+  assert.match(Buffer.from(plainPart[1],'base64').toString(),/Case ID: 100-1026-MU/);
+  assert.doesNotMatch(f.sent.at(-1), /Content-Type: application\/pdf/);
+  assert.doesNotMatch(f.sent.at(-1), /Content-Disposition: attachment;/);
 });
 test('Appointment with missing password returns 503 without connecting', async () => {
   const f = await fixture([], {});
@@ -157,4 +154,9 @@ test('old generic sender setting does not override the two form-specific aliases
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password', SMTP_FROM_EMAIL: 'sender@jesscounselling.online' });
   assert.equal(f.module.getNamecheapConfiguration().from, 'free-consult@jesscounselling.online');
   assert.equal(f.module.getNamecheapConfiguration('appointment').from, 'appointments@jesscounselling.online');
+});
+test('MIME preserves voice recording attachments without an acknowledgement PDF',async()=>{
+ const f=await fixture([]);const attachments=[{filename:'counselling-voice-message.m4a',contentType:'audio/mp4',base64:Buffer.from('voice bytes').toString('base64')}];
+ const mime=f.module.mimeMessage('appointments@jesscounselling.online','Client: New appointment booking','Optional text','<p>Optional text</p>',attachments);
+ assert.match(mime,/multipart\/mixed/);assert.equal((mime.match(/Content-Disposition: attachment;/g)||[]).length,1);assert.doesNotMatch(mime,/application\/pdf/);for(const item of attachments){assert.ok(mime.includes('filename="'+item.filename+'"'));assert.ok(mime.includes(item.base64));}assert.match(mime,/multipart\/alternative/);
 });

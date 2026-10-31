@@ -47,13 +47,13 @@ test('forward-only weekly closures in display, calendar and atomic reservations'
  assert.equal((await store.adminDay('2030-10-31')).slots.length,96);
  await open('2030-11-04',1020,1380);
  const held=await store.reserve('appointment','2030-11-04','7:30 PM',crypto.randomUUID());
- assert.equal(await available('contact','2030-11-04','6:15 PM'),true,'backward buffer remains 60 minutes');
- assert.equal(await available('contact','2030-11-04','6:30 PM'),false,'backward boundary inclusive');
+ assert.equal(await available('contact','2030-11-04','6:00 PM'),true,'point before the backward boundary stays open');
+ assert.equal(await available('contact','2030-11-04','6:15 PM'),true,'scheduled opening waives backward clearance');
  assert.equal(await available('contact','2030-11-04','8:45 PM'),false,'fifth forward point blocked');
  assert.equal(await available('contact','2030-11-04','9:00 PM'),true,'next point after forward buffer opens');
  await assert.rejects(()=>store.reserve('contact','2030-11-04','8:45 PM',crypto.randomUUID()));
  assert.equal((await store.adminDay('2030-11-04')).slots.find(s=>s.time==='8:45 PM').bookings[0].id,held.id);
- assert.equal((await DB.prepare('SELECT count(*) n FROM booking_blocks WHERE booking_id=?').bind(held.id).first()).n,10);
+ assert.equal((await DB.prepare('SELECT count(*) n FROM booking_blocks WHERE booking_id=?').bind(held.id).first()).n,6);
  // Proposed appointment must also respect its own forward buffer before an existing contact.
  await open('2030-11-05',1020,1380);await store.reserve('contact','2030-11-05','7:45 PM',crypto.randomUUID());
  assert.equal(await available('appointment','2030-11-05','6:30 PM'),false);

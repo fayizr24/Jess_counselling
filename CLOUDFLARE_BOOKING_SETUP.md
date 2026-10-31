@@ -1,7 +1,7 @@
-# Cloudflare booking setup
+# Current Cloudflare publishing setup
 
-Follow **START-HERE.md** for current Cloudflare deployment commands and settings.
-Keep the existing D1 binding `DB`, database contents, Worker name and secrets.
-All migrations 0000–0006 are included. The new Case ID/type/clearance metadata
-schemas initialise automatically for existing installations. Never delete the
-Case ID sequence or reference records when updating or cancelling bookings.
+The current instructions are consolidated in **PUBLISHING_README.md**.
+
+Use the existing production Worker, D1 database and SMTP/admin settings. Keep the existing bookings and Case ID sequence. Deploy `dist/server` and its configured `dist/client` assets together. Regenerate `dist/server/wrangler.cloudflare.json` using `scripts/configure-cloudflare.mjs` with your real existing D1 UUID and Worker name before applying additive migrations and deploying.
+
+This document replaces historical setup notes whose scheduling and email examples predated the current saved source.

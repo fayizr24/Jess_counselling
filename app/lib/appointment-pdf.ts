@@ -72,7 +72,7 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
     "New Appointment (1 hour session): INR 990",
     "Follow-up (1 hour session): INR 750",
     "Follow-up (30 min session): INR 450",
-    "Follow-up (Clarifications session, 10 minutes): Free"
+    "Follow-up (Clarification session, 10 minutes): Free"
   ];
   doc.setFont("JessSans","normal");doc.setFontSize(10);
   const feeText=feeLines.flatMap(line=>doc.splitTextToSize(line,contentWidth));

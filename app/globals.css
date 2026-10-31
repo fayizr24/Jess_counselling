@@ -878,7 +878,7 @@ img{max-width:100%}
 .contact-snapshot-dialog h3{margin:0 0 12px;color:#124a32;font-family:Georgia,serif}
 .page-contact .contact-acknowledgement .contact-snapshot-dialog p{margin:0 0 12px}
 .page-contact .contact-acknowledgement-contact{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:22px;padding-top:18px;border-top:1px solid #b7c9b0;text-align:center;color:#071a58;font-size:14px}
-.page-contact .contact-acknowledgement-contact>div{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.page-contact .contact-acknowledgement-contact>div{display:flex;flex-direction:column;align-items:center;gap:2.5px;min-width:0}
 .page-contact .contact-acknowledgement-contact a,.page-contact .contact-acknowledgement-contact span{max-width:100%;overflow-wrap:anywhere}
 @media(max-width:600px){.page-contact .contact-acknowledgement-contact{grid-template-columns:minmax(0,1fr);gap:18px}}
 
@@ -899,7 +899,7 @@ img{max-width:100%}
  .page-contact .contact-aside>.story-panel+h2{margin-top:9px}
 }
 
-.page-contact .contact-acknowledgement-whatsapp-note{font-size:50%}
+.page-contact .contact-acknowledgement-whatsapp-note{display:block;font-size:80%;text-align:center}
 
 .calendar-popover .calendar-availability-pending{animation:booking-submission-blink 1.4s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.calendar-popover .calendar-availability-pending{animation:none}}
@@ -987,3 +987,22 @@ img{max-width:100%}
  .page-appointment #appointment-form .voice-recorder>#voice-recording-title{font-size:calc(16px + 1pt)}
  .page-appointment #appointment-form .contact-section-heading{font-size:calc(18px + 1pt)}
 }
+
+/* Keep each appointment fee aligned beside its radio option on every screen. */
+.page-appointment .appointment-type-options>label{display:grid;grid-template-columns:16px minmax(0,1fr) max-content;column-gap:10px;align-items:baseline}
+.page-appointment .appointment-type-options input{align-self:center}
+.page-appointment .appointment-type-options .appointment-type-fee{white-space:nowrap;text-align:right;color:#006651;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Appointment / apt: age matches Contact and retains device-specific heading sizes. */
+#appointment-form .appointment-age{margin-top:13px;gap:6px}
+#appointment-form .appointment-age select{width:100%;min-height:28px;border:1px solid #b8d2f0;border-radius:3px;color:#15448b;background:#fff;font:inherit;padding:4px 8px}
+@media(min-width:601px) and (max-width:900px){#appointment-form .appointment-age select{min-height:40px}}
+@media(max-width:600px){.page-appointment #appointment-form .appointment-age>b{font-size:calc(16px + 1pt)}#appointment-form .appointment-age select{min-height:44px;font-size:16px}}
+
+/* Appointment and internal apt snapshots share Contact's save flow. */
+.page-appointment .appointment-snapshot-button{gap:8px;min-height:44px;font:inherit;font-weight:700;white-space:normal}
+.page-appointment .appointment-snapshot-button:disabled{opacity:.65;cursor:wait}
+.page-appointment .appointment-snapshot-dialog p{margin:0 0 12px}
+.page-appointment .appointment-snapshot-error{flex-basis:100%;margin:12px 0 0;color:#8b0000;font-size:14px}
+.page-appointment .appointment-snapshot-dialog{box-sizing:border-box}
+@media(max-width:600px){.page-appointment .appointment-snapshot-dialog .pdf-actions{gap:10px}.page-appointment .appointment-snapshot-dialog .pdf-button{font-size:16px;min-height:44px;white-space:normal}}

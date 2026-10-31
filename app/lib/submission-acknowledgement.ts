@@ -4,8 +4,8 @@ export type ContactReceipt={bookingId?:string;submittedWithoutOptionalDetails?:b
 type Receipt={data:ContactReceipt|Record<string,string>;message:string;expiresAt:number};
 export function acknowledgementExpiry(submittedAt=Date.now()){const nextMidnight=(Math.floor((submittedAt+19800000)/86400000)+1)*86400000-19800000;return Math.max(nextMidnight,submittedAt+15*60000);}
 const key=(form:ReceiptForm)=>`jess-counselling:${form}:acknowledgement`;
-export function saveAcknowledgement(form:ReceiptForm,data:Receipt['data'],message='',storage?:Pick<Storage,'setItem'>|null){
- const submittedAt=Date.now();const expiresAt=acknowledgementExpiry(submittedAt);try{(storage===undefined?localStorage:storage)?.setItem(key(form),JSON.stringify({version:1,data,message,submittedAt,submittedDay:indianSubmissionDay(submittedAt)}));}catch{}return expiresAt;
+export function saveAcknowledgement(form:ReceiptForm,data:Receipt['data'],message='',storage?:Pick<Storage,'setItem'>|null,submittedAt=Date.now()){
+ const expiresAt=acknowledgementExpiry(submittedAt);try{(storage===undefined?localStorage:storage)?.setItem(key(form),JSON.stringify({version:1,data,message,submittedAt,submittedDay:indianSubmissionDay(submittedAt)}));}catch{}return expiresAt;
 }
 export function readAcknowledgement(form:'contact'|'free',storage?:(Pick<Storage,'getItem'>&Partial<Pick<Storage,'removeItem'>>)|null):{data:ContactReceipt;message:string;expiresAt:number}|null;
 export function readAcknowledgement(form:'appointment'|'apt',storage?:(Pick<Storage,'getItem'>&Partial<Pick<Storage,'removeItem'>>)|null):{data:Record<string,string>;message:string;expiresAt:number}|null;

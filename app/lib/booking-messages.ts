@@ -1,6 +1,11 @@
 export const AVAILABILITY_ERROR='Booking availability cannot be displayed at the moment due to a temporary server issue. Please try again shortly. If the issue persists, contact us directly by email or WhatsApp to make a booking.';
 export const SUBMISSION_ERROR='The form could not be submitted due to a server error. Please try again shortly. If the issue persists, contact us directly by email or WhatsApp to make a booking.';
-export const EMAIL_WARNING='Your slot is reserved, but the notification email could not be sent to Jess Counselling due to a server error. Please contact Jess Counselling directly by email or WhatsApp to confirm your booking. Do not submit the form again.';
+export const EMAIL_WARNING='Your booking has succeeded. However, form data could not be sent due to a server error. Please contact  Jess Counselling via WhatsApp or email, quoting your Case ID, to confirm your booking. Please do not submit the form again.';
+export const EMAIL_PENDING_WARNING='Your booking has been saved, but we could not confirm whether your form details were emailed to Jess Counselling. Please contact us via WhatsApp or email, quoting your Case ID, to confirm your booking. Do not submit the form again.';
+export const RECOVERY_CHECKING='Checking booking status…';
+export const RECOVERY_UNCERTAIN='We could not confirm the outcome of your original submission. It may already have reserved your slot. Please use Check booking status or contact Jess Counselling via WhatsApp or email before making another booking. Do not submit the form again.';
+export function notificationWarning(status:string){return status==='sent'?undefined:status==='failed'?EMAIL_WARNING:EMAIL_PENDING_WARNING;}
+
 export function connectivityError(error:unknown){const message=error instanceof Error?error.message:'Connection failed';return `${message.replace(/[.\s]+$/,'')}. If you are unable to make a booking, contact us directly by email or WhatsApp to make a booking.`;}
 /** Preserve server errors and HTTP status; normalize transport and non-JSON failures. */
 export async function bookingRequest<T>(url:string,init:RequestInit,fallback:string){
@@ -9,4 +14,4 @@ export async function bookingRequest<T>(url:string,init:RequestInit,fallback:str
  return {response,data};
 }
 
-export function isBookingIssue(message:string){return message===AVAILABILITY_ERROR||message===SUBMISSION_ERROR||message.includes(EMAIL_WARNING)||message.includes("That time slot has just been booked by another user.")||message.includes("If you are unable to make a booking, contact us directly by email or WhatsApp to make a booking.");}
+export function isBookingIssue(message:string){return message===AVAILABILITY_ERROR||message===SUBMISSION_ERROR||message.includes(EMAIL_WARNING)||message.includes(EMAIL_PENDING_WARNING)||message===RECOVERY_UNCERTAIN||message.includes("That time slot has just been booked by another user.")||message.includes("If you are unable to make a booking, contact us directly by email or WhatsApp to make a booking.");}

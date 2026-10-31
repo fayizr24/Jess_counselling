@@ -8,9 +8,9 @@ export function timesFor(kind:BookingKind,date?:string){const step=kind==='conta
 export const APPOINTMENT_TIMES=timesFor('appointment');
 export function defaultSlot(kind:BookingKind,date:string,time:string){return validDate(date)&&new Date(date+'T00:00:00Z').getUTCDay()!==6&&timesFor(kind,date).includes(time);}
 export function scheduleAvailable(kind:BookingKind,dateValue:string,time:string,now=Date.now(),manualAllow=false){const date=consultationDateIso(dateValue),n=timeMinute(time);if(!validDate(date)||n<0||n%(kind==='contact'?15:30)!==0)return false;if(!manualAllow&&!defaultSlot(kind,date,time))return false;return Date.parse(`${date}T${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}:00+05:30`)>=now+7200000;}
-export const APPOINTMENT_TYPES=["New Appointment (1 hour session)","Follow-up (1 hour session)","Follow-up (30 min session)","Follow-up (Clarifications session, 10 minutes)"] as const;
-export function radiusFor(kind:BookingKind,appointmentType=""){if(kind==='contact')return 15;if(appointmentType===APPOINTMENT_TYPES[2])return 30;if((appointmentType===APPOINTMENT_TYPES[3]||appointmentType==="Follow-up (Clarification sessions, 10 - 15 minutes)"))return 15;return 75;}
-export function forwardRadiusFor(kind:BookingKind,appointmentType=""){return radiusFor(kind,appointmentType);}
+export const APPOINTMENT_TYPES=["New Appointment (1 hour session)","Follow-up (1 hour session)","Follow-up (30 min session)","Follow-up (Clarification session, 10 minutes)"] as const;
+export function radiusFor(kind:BookingKind,appointmentType=""){if(kind==='contact')return 15;if(appointmentType===APPOINTMENT_TYPES[2])return 30;if((appointmentType===APPOINTMENT_TYPES[3]||appointmentType==="Follow-up (Clarifications session, 10 minutes)"||appointmentType==="Follow-up (Clarification sessions, 10 - 15 minutes)"))return 15;return 30;}
+export function forwardRadiusFor(kind:BookingKind,appointmentType=""){if(kind==='contact')return 15;if(appointmentType===APPOINTMENT_TYPES[2])return 30;if(appointmentType===APPOINTMENT_TYPES[3]||appointmentType==="Follow-up (Clarifications session, 10 minutes)"||appointmentType==="Follow-up (Clarification sessions, 10 - 15 minutes)")return 15;return 75;}
 
 /** Weekly closures only: session end is included; no backward schedule check. */
 export function forwardScheduleClosures(kind:BookingKind,date:string,minute:number,appointmentType=""){
