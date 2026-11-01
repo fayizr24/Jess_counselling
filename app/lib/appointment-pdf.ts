@@ -68,21 +68,31 @@ export function createAppointmentPdfBlob(details:Record<string,string>){
     }
   }
   y+=10;
-  const feeLines=[
-    "New Appointment (1 hour session): INR 990",
-    "Follow-up (1 hour session): INR 750",
-    "Follow-up (30 min session): INR 450",
-    "Follow-up (Clarification session, 10 minutes): Free"
+  const feeRows=[
+    ["New Appointment (1 hour session)","₹990"],
+    ["Follow-up (1 hour session)","₹750"],
+    ["Follow-up (30 min session)","₹450"],
+    ["Follow-up (Clarifications - 10 min)","Free"]
   ];
-  doc.setFont("JessSans","normal");doc.setFontSize(10);
-  const feeText=feeLines.flatMap(line=>doc.splitTextToSize(line,contentWidth));
-  const feeHeight=25+feeText.length*14;
-  ensure(feeHeight);
+  const feeTableWidth=390,feeRowHeight=21,feeHeaderHeight=23;
+  ensure(24+feeHeaderHeight+feeRows.length*feeRowHeight+10);
   doc.setFont("JessSans","bold");doc.setFontSize(11);doc.setTextColor(...green);
-  doc.text("Counselling Fee",margin,y+12);
-  doc.setFont("JessSans","normal");doc.setFontSize(10);doc.setTextColor(...ink);
-  doc.text(feeText,margin,y+29,{lineHeightFactor:1.4});
-  y+=feeHeight;
+  doc.text("Counselling Fee",margin,y+12);y+=24;
+  doc.setFontSize(9.5);
+  doc.text("Appointment Type",margin+10,y+15);
+  doc.text("Fee",margin+feeTableWidth-10,y+15,{align:"right"});
+  doc.setDrawColor(218,221,214);doc.setLineWidth(.5);
+  doc.line(margin,y+feeHeaderHeight,margin+feeTableWidth,y+feeHeaderHeight);
+  y+=feeHeaderHeight;
+  for(const [index,[type,fee]] of feeRows.entries()){
+    doc.setFillColor(...(index%2===0?[241,241,241]:[255,255,255]) as [number,number,number]);
+    doc.rect(margin,y,feeTableWidth,feeRowHeight,"F");
+    doc.setFont("JessSans","normal");doc.setFontSize(9.5);doc.setTextColor(...ink);
+    doc.text(type,margin+10,y+14);
+    doc.setTextColor(...green);doc.text(fee,margin+feeTableWidth-10,y+14,{align:"right"});
+    y+=feeRowHeight;
+  }
+  y+=10;
   doc.setFont("JessSans","normal");doc.setFontSize(9.5);
   doc.setFont("JessSans","bold");
   const payment=doc.splitTextToSize("Payment instructions will be sent to you separately. Appointments are confirmed only after receiving the payment.",contentWidth-30);

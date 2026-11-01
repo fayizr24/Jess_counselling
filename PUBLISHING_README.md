@@ -1,87 +1,96 @@
-# Jess Counselling - Full publishing package
+# Jess Counselling - complete publishing package
 
-Prepared 31 October 2026 from saved website version 423, source commit `04a893b25bf8a6a49286e5facf2b46f0858b90fd`.
+Prepared 31 October 2026 (Bahrain). This is the authoritative current handover guide.
 
-## Package contents
+Source commit: `fd80e46e900b84e248f86e91f110002a02aafc34`
+Saved version: `appgprj_6ab16d86fa4c81918403d1660fd96a32~appgver_a353a790a778819189d569120ebcf8fb`
+Successful preview deployment: `appgdep_6ae6523191488191b674a24f56b560db`
+Preview: https://jess-counselling.rahmanmujeebu.chatgpt.site
+External domain: https://jesscounselling.online
 
-- Full source for Home, About, Services, Contact, Appointment and Disclaimer.
-- Internal `/apt`, `/free`, `/slot-admin` and latest `/receipt` pages.
-- Production Cloudflare Worker in `dist/server` and matching browser assets in `dist/client`.
-- All current graphics, logo, embedded PDF fonts and PDF generators.
-- D1 schema and additive migrations in `drizzle`.
-- Current booking/slot management, email delivery, submission recovery and mobile/tablet styles.
-- Automated tests and release verification notes.
-- Refreshed Appointment, Apt and Payment Receipt sample PDFs in `acknowledgement-pdfs`, plus the sample-generation script and vendored stylesheet/license.
+## Contents and deployment model
 
-This is a server-backed website. Deploy the Worker and client assets together. Uploading only `dist/client` as a static Cloudflare Pages site will not provide the booking, database, email or receipt endpoints.
+Includes full editable application source, all public assets, the matching prebuilt `dist/server` Worker and `dist/client` browser assets, dependency lockfile, seven additive SQL migrations, tests, verification logs, file hashes, and freshly generated Appointment, Apt and Payment Receipt sample PDFs. Mobile/tablet CSS and phone-only appointment description line breaks are preserved byte-for-byte from this source.
 
-## Existing Cloudflare deployment
+**Deploy the Worker and assets together. A static-only Cloudflare Pages upload will not provide booking APIs, D1, SMTP or receipt generation.** Reuse the existing production Worker and D1 database. No real database rows, credentials, local dependencies or private runtime files are included.
 
-Keep your existing production D1 database, bookings and runtime secrets. This ZIP contains no live database or secret values. Do not create an empty replacement database for an existing site.
+## Publishing steps
 
-Use Node.js 22.13 or later and the declared pnpm version (11.25.0). From this package directory:
+1. Back up the existing production D1 database using the publisher's normal backup procedure. Keep its existing data, Worker name, custom domain and secrets.
+2. For the supplied prebuilt version, use `dist/server/index.js` and `dist/client` together. To rebuild instead, use Node 22.13 or newer and the pnpm version declared in package.json: `pnpm install --frozen-lockfile`, then `pnpm run build`. Do not mix old and new compiled bundles.
+3. Configure the exact EXISTING production D1 UUID and Worker name:
 
-```sh
-pnpm install --frozen-lockfile
-node scripts/configure-cloudflare.mjs --database-id YOUR_EXISTING_D1_UUID --worker-name YOUR_EXISTING_WORKER_NAME
-pnpm exec wrangler d1 migrations apply DB --remote --config dist/server/wrangler.cloudflare.json
-pnpm exec wrangler deploy --config dist/server/wrangler.cloudflare.json
-```
+   `node scripts/configure-cloudflare.mjs --database-id YOUR-EXISTING-D1-UUID --worker-name YOUR-EXISTING-WORKER-NAME`
 
-Replace the two uppercase placeholders with your actual database UUID and Worker name. Review the target before applying migrations. Supplied migrations use additive `CREATE TABLE IF NOT EXISTS`; never reset/delete existing booking or sequence tables.
+   This writes `dist/server/wrangler.cloudflare.json`. Review it before deployment. The base `wrangler.json` contains a placeholder D1 UUID; it is not production configuration. Runtime binding must be `DB`. Run the configuration script again after any rebuild.
+4. Apply only outstanding additive migrations to the existing database:
 
-The matching production build is already included. If changing source, rebuild with `pnpm run build` before running the configure script and deployment commands. Re-run the configure script after every rebuild because the base generated configuration contains a preview database placeholder.
+   `npx wrangler d1 migrations apply DB --remote --config dist/server/wrangler.cloudflare.json`
 
-Keep the existing custom domain `jesscounselling.online` mapped to the Worker serving this application.
+   Retain the existing migration history. Do not reset, drop or replace the database. All migrations 0000-0006 are supplied. Runtime helpers also create supplemental tables idempotently.
+5. Preserve secrets `BOOKING_ADMIN_PASSWORD` and `SMTP_PASSWORD` on the existing Worker. If absent, configure them using Wrangler's secret prompt or Cloudflare settings; never embed them in source. Defaults: SMTP login/recipient `hello@jesscounselling.online`, Contact sender `free-consult@jesscounselling.online`, Appointment/receipt sender `appointments@jesscounselling.online`, TLS SMTP `mail.privateemail.com:465`. Retain any current `SMTP_USER`, `SMTP_CONTACT_FROM_EMAIL`, `SMTP_APPOINTMENT_FROM_EMAIL` overrides. Keep Namecheap MX/SPF/DKIM and aliases.
+6. Deploy:
 
-## Runtime settings
+   `npx wrangler deploy --config dist/server/wrangler.cloudflare.json`
 
-On that same Worker retain/set:
+   Check the target account/Worker and D1 binding first. Keep the current custom domain mapping and audience. This ZIP does not deploy or change any live database by itself.
+7. Verify the routes and publisher acceptance checks below on the target Worker/domain. In particular, confirm its resource limits and live SMTP acceptance; local tests cannot verify the publisher's account configuration.
 
-| Setting | Type | Purpose |
-| --- | --- | --- |
-| DB | D1 binding | Existing production booking database |
-| SMTP_PASSWORD | Secret | Namecheap hello mailbox password/application password |
-| SMTP_USER | Text | Defaults to hello@jesscounselling.online |
-| SMTP_CONTACT_FROM_EMAIL | Optional text | Defaults to free-consult@jesscounselling.online |
-| SMTP_APPOINTMENT_FROM_EMAIL | Optional text | Defaults to appointments@jesscounselling.online |
-| BOOKING_ADMIN_PASSWORD | Secret | Existing slot-management password, at least 20 characters |
+## Routes and form attributes
 
-SMTP uses `mail.privateemail.com:465` with TLS. Both sender aliases must be available in Namecheap. Recipient and Reply-To are fixed to `hello@jesscounselling.online`. Preserve the existing domain's MX/SPF/DKIM configuration. No new secret is required for `/receipt`.
+| Route | Included behaviour |
+|---|---|
+| `/`, `/about`, `/services`, `/disclaimer` | Current content, official logo, responsive layouts; Health and Mental Health Matters is last in Disclaimer |
+| `/contact` | Public free consultation; required age 18-75, contact/date/time, optional topic/text/audio, generated Case ID, one successful submission per browser per Indian day |
+| `/free` | Internal free-consult form sharing Contact features; no public daily lock; repeated bookings, in-flight/duplicate protection and staff manual acknowledgement clearing retained; unlisted/noindex |
+| `/appointment` | Public appointment form; required age, optional existing Case ID or automatic generation, four appointment types/fees, optional details/audio, one successful submission per browser per Indian day |
+| `/apt` | Internal appointment form; same types, fees, age, Case ID and PDF; multiple bookings with manual acknowledgement clearing; unlisted/noindex |
+| `/receipt` | Unlisted/noindex payment receipt generator with current PDF, background email, passcode and midnight lock rules |
+| `/slot-admin` | Password-protected slot APIs, calendar, individual checkboxes, Block/Unblock range dialog, completion alerts, three-column Time / Type / Case ID generated booking list |
 
-## Current receipt generator
+API routes: `/api/slots`, `/api/consultation`, `/api/appointment`, `/api/booking-status`, `/api/slot-admin`, `/api/receipt`.
 
-`/receipt` is excluded from sitemap/navigation and marked noindex/nofollow. It contains Receipt No., Receipt Date, Client Name, Case ID, locked Online Counselling service, Session choices matching appointments, Session Date, Payment Date, Bank Transfer/Google Pay, editable Amount Received and Transaction Reference. Dates display as `31 Oct 2026`. Session fees prefill the amount.
+Public Contact/Appointment daily limits reset at Indian midnight. Acknowledgements remain until the later of the next Indian midnight or 15 minutes after submission. Staff free/apt retain manual clearing. Original double-click protection, request-key idempotency and bounded automatic interrupted-submission recovery remain; no visible Check Booking Status button on any of the four booking forms. Saved-booking/email-failure warnings and Case ID acknowledgements remain even if sending fails or is uncertain. Recovery does not resend booking emails.
 
-Generated A4 PDFs retain the MCA/LLP permanent header, Indian amount in words, Jasseela M A signatory fitted beneath the company line, and the final footer: "This is a computer-generated receipt and it acknowledges the payment."
+## Schedule, clearance and admin rules
 
-The PDF is immediately available for preview, open, download and device sharing. The identical PDF is emailed in the background through the appointment sender with subject `Receipt: [amount]-[receipt no]`. Downloads/shares do not send another email. Background sending has no PDF-response dependency.
+All booking times are Indian time. Defaults: Sun-Thu 7:30 PM-10:30 PM; Friday 10:30 AM-12:30 PM and 7:30 PM-10:30 PM; Saturday closed unless manually opened. Two-hour advance rule; Contact starts every 15 minutes, Appointment every 30 minutes. Shared slot blocks use a 15-minute grid.
 
-The four-digit passcode remains a browser-only salted hash check as requested. Three incorrect entries lock that browser until midnight India time; refresh, form clearing and reopening do not reset the count. The receipt API does not enforce the passcode on the server. This is a browser deterrent, not server access control. Do not put passcode digits into server settings for this version.
+| Booking type | Backward clearance | Forward clearance | Fee |
+|---|---:|---:|---:|
+| Free Consult | 15 min | 15 min | Free |
+| New Appointment (1 hour session) | 30 min | 75 min | INR 990 |
+| Follow-up (1 hour session) | 30 min | 75 min | INR 750 |
+| Follow-up (30 min session) | 30 min | 30 min | INR 450 |
+| Follow-up (Clarifications - 10 min) | 15 min | 15 min | Free |
 
-## Acknowledgements and email behavior
+At a scheduled daily-window opening or the earliest manually opened slot, backward clearance is waived if forward clearance is available. Forward checks always apply, including cross-midnight closures. Existing bookings retain their stored clearance values and legacy type compatibility. Boundary/conflict checks and reservation/reference allocation remain atomic.
 
-- `/contact` and `/free`: PDF Download and Save Snapshot.
-- `/appointment` and `/apt`: Open Appointment PDF and Save Snapshot. No acknowledgement PDF is attached to appointment emails. Supplied voice recordings retain their email attachment behavior.
-- Save Snapshot uses the same PNG capture/save consent flow on all four pages. It offers a native share/save menu where supported and a PNG download fallback otherwise. Save Image/Photos options depend on the device.
-- Public Contact and Appointment limits reset at midnight India time. Their acknowledgement persists until midnight or 15 minutes after submission, whichever is later. Staff apt/free retain manual clearing and multiple bookings.
-- Required age 18-75 on all booking forms. Case ID is reused when entered on appointment/apt or allocated from the shared persistent sequence when blank. Contact/free always allocate a Case ID.
-- Optional details are hidden after a confirmed booking and remain included in the initial email; there is no later optional-details submission workflow.
+Admin: single-click/tap selects a date; double-click/tap toggles whole-day blocking. Whole-day block retains bookings and warns once per distinct booking; individual openings can override the day closure. Whole-day unblock restores normal weekly hours without opening Saturday/outside-hours closures, and retains bookings/buffers/manual blocks. Range Block/Unblock uses inclusive From/To selectors. Block warns for booking/buffer occupied points, allows abort and blocks open points only. Unblock skips bookings/buffers/manual blocks and opens weekly-schedule closures only. Neither range action cancels bookings or sends email. Successful ranges show a dismissible completion alert and slot counts. Individual checkbox cancellation retains its separate explicit warning. Auto-refresh remains 10 seconds. Generated booking list reads appointment type and Case ID from D1; missing legacy Case IDs display an em dash.
 
-## Scheduling and admin behavior retained
+## Email, PDF and Snapshot rules
 
-All booking times are India time. Default Sunday-Thursday hours are 7:30 PM-10:30 PM; Friday is 10:30 AM-12:30 PM and 7:30 PM-10:30 PM; Saturday is closed unless manually opened. Two-hour notice remains.
+All four booking notification emails use consistent olive-green data-section banners, including Client, Age and Case ID.
 
-Current new 1-hour appointment requests use 30 minutes backward and 75 minutes forward clearance; 30-minute follow-ups use 30/30; clarification and free consult use 15/15. Exact scheduled openings and the earliest explicitly manually opened slot can waive backward clearance only; forward checks always apply. Existing bookings keep their stored clearances.
+- Appointment/apt subject: `[name]: Appointment`; with validated audio: `[name]: Appointment 🔴 (Voice attached)`.
+- Contact/free subject: `[name]: Free Consult`; with validated audio: `[name]: Free Consult 🔴 (Voice attached)`.
+- Any legacy later optional-details email follows the same Free Consult subject rule, retaining the existing-booking body and authenticated followup protections.
+- Booking emails contain HTML and plain text and attach valid audio when provided. **No server-generated acknowledgement PDF is attached.**
+- Contact/free acknowledgement has View PDF (same-tab browser PDF with Back navigation) and Save Snapshot. Appointment/apt have Open Appointment PDF and Save Snapshot. Browser PDF saving/sharing depends on device/browser support. Snapshot keeps consent, native picture-share where supported and explicit PNG fallback.
+- Appointment/apt PDF includes the compact alternating grey/white Appointment Type / Fee table with current labels/fees. Their on-page type table matches contact-method fonts, with bracketed descriptions on a new line on phones only (max-width 600px).
 
-Admin retains individual checkboxes, single date selection, double-click/tap whole-day blocking/unblocking, Block/Unblock Slots range dialog, automatic refresh and Generate Booking List. Whole-day unblocking restores weekly hours without opening weekly closures. Interval Unblock only opens weekly closures, skipping booked/buffer and manually blocked slots. Existing bookings and sequence data remain in D1.
+## Receipt generator
 
-## Sitemap and device layouts
+Current receipt PDF header, fields, dates, payment method/amount, amount in words, authorisation/footer and current session options are included. Identical PDF bytes are emailed in a protected after-response task; PDF generation/availability does not wait for email, and viewing/downloading/sharing does not resend it. Subject: `Receipt: [amount]-[receipt no]`.
 
-The sitemap contains Home, About, Services, Contact and Appointment. `/apt`, `/free`, `/receipt` and `/slot-admin` stay out of it. Preserve the supplied `app/globals.css` and `app/receipt/receipt.css`: they include all latest desktop/mobile/tablet refinements.
+Prompt: **Enter your passcode to generate this receipt.** Existing masked four-digit verification, salted digest, three failed attempts per Indian day, persisted browser lock across tabs/refresh, and midnight unlock are preserved. This is a browser deterrent, not server authentication; `/api/receipt` validates input and origin but does not verify the passcode. No plain passcode digits are documented in this package. Background sending failures are logged without confidential form details.
 
-## Verification and after-deployment check
+## D1 storage
 
-See `VERIFICATION.md` and `RELEASE-MANIFEST.json`. ZIP CRC and required-file checks were performed. No live booking or email was created for package checks. Browser/real-device QA remains unverified due to preview infrastructure timeout. The full suite rerun passed: 95 tests, including isolated local D1 integration; zero failures or skips. This does not inspect the live production database.
+Includes booking date/time/kind, internal IDs/request keys, active status, created timestamp, notification state, slot openings/closures, booking buffers, Case IDs/sequence numbers, appointment types, forward-clearance metadata and legacy optional-followup delivery state/expiry. Full client names, ages, contact methods, phone numbers/email addresses, counselling topics/text and audio are NOT stored by these D1 booking paths. Generated Case IDs contain a name-derived two-letter code. Some acknowledgement/contact details persist in the submitter's browser for display/recovery, separately from D1.
 
-After deploying to your account, verify the existing D1 binding/secrets, receipt PDF and email arrival, acknowledgement PDF/Save Snapshot on your target devices, and admin availability. Creating a booking for this check reserves live slots; use deliberate test details and cancel the test booking in admin afterwards.
+## Verification and target acceptance
+
+Read VERIFICATION.md and LOCAL_TEST_RESULTS.txt. All 96 tests passed, including real local Miniflare D1 transactions/concurrency, references, buffers, admin actions, recovery, SMTP/MIME simulations, receipt/passcode and acknowledgement exports. All 28 public files and current application/CSS source are checked against the selected source; compiled build is copied from its successful deployment archive. Fresh sample PDFs were rendered and inspected. Hash manifests and ZIP CRC checks are included.
+
+No live production D1 mutations, real bookings or live email were used for verification. This is not real-device/browser QA or proof of the external publisher's runtime limits. After deployment, check mobile/tablet layout, slot availability, admin range alerts/list Case ID, each form's acknowledgement/PDF/Snapshot, no-voice/voice subjects and inbox delivery, and receipt passcode/PDF/background email. Use an isolated test environment where practical; avoid disrupting real bookings.

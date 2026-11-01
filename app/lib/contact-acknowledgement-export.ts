@@ -45,3 +45,11 @@ export function saveContactAcknowledgementFile(blob:Blob,filename:string){
   link.href=url;link.download=filename;document.body.appendChild(link);
   try{link.click();}finally{link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),60000);}
 }
+
+/** Same-tab navigation retains browser Back to the saved acknowledgement. */
+export function openContactAcknowledgementPdf(blob:Blob){
+  const url=URL.createObjectURL(blob);
+  try{window.location.assign(url);}catch(error){URL.revokeObjectURL(url);throw error;}
+  // Keep the URL alive for the native PDF viewer and its save/share controls.
+  // The browser releases it when the originating document is discarded.
+}

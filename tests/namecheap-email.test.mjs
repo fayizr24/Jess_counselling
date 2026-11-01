@@ -117,7 +117,7 @@ test('SMTP acceptance returns existing ok response', async () => {
   const encoded=f.sent.at(-1).match(/Content-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/g)||[];
   const bodies=encoded.map(part=>Buffer.from(part.split('\r\n\r\n')[1].replace(/\s/g,''),'base64').toString('utf8'));
   assert.ok(bodies.some(body=>body.startsWith('Case ID: 100-1026-MU\n')));
-  assert.ok(bodies.some(body=>body.includes('Case ID: <strong>100-1026-MU</strong>')));
+  assert.ok(bodies.some(body=>body.includes('>Case ID</td>')&&body.includes('>100-1026-MU</td>')));
 });
 test('stalled server times out and closes', async () => {
   const f = await fixture([], { SMTP_PASSWORD: 'test-only-password' }, true);
@@ -133,7 +133,7 @@ test('Appointment sends from appointments alias using the hello login and recipi
   assert.match(f.sent.at(-1), /From: Jess Counselling Website <appointments@jesscounselling.online>/);
   const htmlPart = f.sent.at(-1).match(/Content-Type: text\/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
   assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /New Appointment Booking/);
-  assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /Case ID: <strong>100-1026-MU<\/strong>/);
+  assert.match(Buffer.from(htmlPart[1], 'base64').toString(), /Case ID<\/td>[\s\S]*?100-1026-MU/);
   const plainPart=f.sent.at(-1).match(/Content-Type: text\/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([A-Za-z0-9+/=\r\n]+)/);
   assert.match(Buffer.from(plainPart[1],'base64').toString(),/Case ID: 100-1026-MU/);
   assert.doesNotMatch(f.sent.at(-1), /Content-Type: application\/pdf/);

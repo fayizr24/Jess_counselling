@@ -1006,3 +1006,23 @@ img{max-width:100%}
 .page-appointment .appointment-snapshot-error{flex-basis:100%;margin:12px 0 0;color:#8b0000;font-size:14px}
 .page-appointment .appointment-snapshot-dialog{box-sizing:border-box}
 @media(max-width:600px){.page-appointment .appointment-snapshot-dialog .pdf-actions{gap:10px}.page-appointment .appointment-snapshot-dialog .pdf-button{font-size:16px;min-height:44px;white-space:normal}}
+
+/* Compact striped appointment type / fee table, shared by appointment and apt. */
+.page-appointment .appointment-type-legend{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.page-appointment .appointment-type-table{border-collapse:collapse;width:100%;max-width:510px;font:inherit;line-height:1.4;color:inherit;table-layout:auto}
+.page-appointment .appointment-type-table th{padding:9px 12px;text-align:left;font-weight:700;color:#004b36;border-bottom:1px solid #daddd6}
+.page-appointment .appointment-type-table td{padding:3.9px 12px;vertical-align:middle}
+.page-appointment .appointment-type-table tbody tr:nth-child(odd){background:#f1f1f1}
+.page-appointment .appointment-type-table tbody tr:nth-child(even){background:#fff}
+.page-appointment .appointment-type-table th:last-child,.page-appointment .appointment-type-table .appointment-type-fee{width:64px;white-space:nowrap;text-align:right;color:#006651;font-variant-numeric:tabular-nums}
+.page-appointment .appointment-type-table td>label{display:flex;flex-direction:row;align-items:center;gap:10px;min-height:21px;margin:0;cursor:pointer}
+.page-appointment .appointment-type-table input{position:static;opacity:1;appearance:auto;width:16px;height:16px;min-height:0;flex:none;margin:0;padding:0;accent-color:#006651}
+.page-appointment .appointment-type-table .appointment-type-name{min-width:0;overflow-wrap:anywhere}
+.page-appointment .appointment-type-field:disabled .appointment-type-table{opacity:.65}
+@media(max-width:900px){.page-appointment .appointment-type-table{font-size:calc(14px + 1pt)}}
+@media(max-width:480px){.page-appointment .appointment-type-table th,.page-appointment .appointment-type-table td{padding:3.9px 8px}.page-appointment .appointment-type-table td>label{min-height:25.8px}}
+
+/* Put appointment descriptions on their own line on phones only. */
+@media(max-width:600px){.page-appointment .appointment-type-table .appointment-type-detail{display:block}}
+
+.admin-list-table th:first-child{width:20%}.admin-list-table th:nth-child(2){width:50%}.admin-list-table th:last-child{width:30%}

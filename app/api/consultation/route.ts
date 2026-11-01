@@ -73,7 +73,9 @@ export async function POST(request:Request){
 
   const html=`<!doctype html><html><body style="margin:0;padding:0;background:#eef7f2;font-family:Arial,Helvetica,sans-serif;color:#071a58;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;background:#eef7f2;"><tr><td align="center" style="padding:24px 12px;"><table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:collapse;background:#fff;border:1px solid #d7dfdd;border-radius:14px;overflow:hidden;">
     <tr><td style="padding:26px 28px 20px;background:#071a58;color:#fff;"><div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:700;">Jess Counselling</div><span style="display:inline-block;margin-top:7px;padding:3px 9px;background:#fff3a3;color:#111;border-radius:4px;font-family:Georgia,'Times New Roman',serif;font-size:15px;">Online Counselling Services</span><div style="margin-top:14px;font-size:22px;font-weight:700;">${mode==='optional'?'Optional Details for Existing Consultation':'New Consultation Request'}</div><div style="margin-top:5px;color:#dfe9df;font-size:14px;">${mode==='optional'?'Additional details for the existing booking below. No new booking has been created.':'A new request has been submitted through the website.'}</div></td></tr>
-    <tr><td style="padding:20px 28px 12px;"><div style="font-size:13px;color:#6f7f32;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Client</div><div style="margin-top:5px;font-size:22px;font-weight:700;color:#071a58;">${name}</div><div style="margin-top:8px">Age: <strong>${escapeHtml(form.get("age"))}</strong></div><div style="margin-top:8px;font-size:12px">Case ID: <strong>${escapeHtml(reservation.reference)}</strong></div></td></tr>
+    ${section("Client",name)}
+    ${section("Age",escapeHtml(form.get("age")))}
+    ${section("Case ID",escapeHtml(reservation.reference))}
     ${section("Preferred Contact Method",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">${contactRows}</table>`)}
     ${section("Preferred Callback",`<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tr><td style="padding:6px 0;color:#51636a;width:42%;">Date</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackDate}</td></tr><tr><td style="padding:6px 0;color:#51636a;">Time</td><td style="padding:6px 0;color:#071a58;font-weight:600;">${callbackTime} <span style="background:#fff3a3;color:#111;padding:1px 5px;">(Indian Time)</span></td></tr></table>`)}
     ${section("Areas of Support",`<div style="line-height:1.55;color:#071a58;">${support}</div>${otherSupport!=="Not provided"?`<div style="margin-top:8px;color:#51636a;">Other details: <strong style="color:#071a58;">${otherSupport}</strong></div>`:""}`)}
@@ -85,7 +87,7 @@ export async function POST(request:Request){
   const rows:string[]=[`Case ID: ${reservation.reference}`];
   form.forEach((value,label)=>{if(typeof value==="string"&&label!=="booking id")rows.push(`${label}: ${value}`);});if(attachment)rows.push("Voice recording: attached");
   try {
-    await sendNamecheapEmail({subject:`${form.get("name")}: Free Consult${mode==='optional'?' — Optional Details':''}${attachment?" (Voice attached)":""}`,html,text:rows.join("\n"),attachment});
+    await sendNamecheapEmail({subject:`${form.get("name")}: Free Consult${attachment?" 🔴 (Voice attached)":""}`,html,text:rows.join("\n"),attachment});
   } catch {
     if(mode==='optional'){try{await finishFollowup(reservation.id,'failed');}catch{}return Response.json({error:'Optional details could not be emailed. Your booking is unchanged. Please try again or contact us directly.'},{status:503});}
     // Do not expose SMTP replies, mailbox passwords, or counselling content.

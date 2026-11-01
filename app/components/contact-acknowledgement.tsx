@@ -1,6 +1,6 @@
 "use client";
 import {useRef,useState} from "react";
-import {Download,Camera} from "lucide-react";
+import {FileText,Camera} from "lucide-react";
 import {consultationDateIso,validDate} from "../lib/booking-schedule";
 
 export function createContactAcknowledgementData(form:FormData,bookingId=""){
@@ -54,8 +54,8 @@ export function ContactAcknowledgement({details}:{details:ReturnType<typeof crea
         setSnapshotFile(picture);setNativeSave(canShare);setSnapshotMessage("");
         if(!snapshotDialog.current)throw Error("Snapshot confirmation is unavailable.");
         snapshotDialog.current.showModal();
-      }else exporter.saveContactAcknowledgementFile(file,filename);
-    }catch{setExportError("Could not save the acknowledgement. Please try again.");}
+      }else exporter.openContactAcknowledgementPdf(file);
+    }catch{setExportError(format==="pdf"?"Could not open the acknowledgement PDF. Please try again.":"Could not save the acknowledgement. Please try again.");}
     finally{exporting.current=false;setBusy(null);}
   }
   return <section ref={box} className="contact-acknowledgement" role="status" aria-label="Free online consultation acknowledgement">
@@ -68,7 +68,7 @@ export function ContactAcknowledgement({details}:{details:ReturnType<typeof crea
     </div>)}</dl>
     <p className="contact-acknowledgement-reschedule" style={{color:"#0057ff"}}>For rescheduling or cancellation, please contact us by email or WhatsApp.</p>
     <div className="contact-acknowledgement-actions" data-ack-export-ignore="true">
-      <button type="button" disabled={busy!==null} aria-busy={busy==="pdf"} onClick={()=>exportReceipt("pdf")}><Download size={18}/>{busy==="pdf"?"Preparing PDF…":"Download"}</button>
+      <button type="button" disabled={busy!==null} aria-busy={busy==="pdf"} onClick={()=>exportReceipt("pdf")}><FileText size={18}/>{busy==="pdf"?"Preparing PDF…":"View PDF"}</button>
       <button type="button" disabled={busy!==null} aria-busy={busy==="png"} onClick={()=>exportReceipt("png")}><Camera size={18}/>{busy==="png"?"Preparing snapshot…":"Save Snapshot"}</button>
     </div>
     <div className="contact-acknowledgement-contact" aria-label="Contact Jess Counselling">

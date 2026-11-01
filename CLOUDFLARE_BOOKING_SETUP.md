@@ -1,7 +1,5 @@
-# Current Cloudflare publishing setup
+# Cloudflare booking setup
 
-The current instructions are consolidated in **PUBLISHING_README.md**.
+Use **PUBLISHING_README.md** as the authoritative guide for this exact release. It includes Worker/assets deployment commands, existing D1 reuse, migrations, secret names, current schedules/buffers, all internal pages and acceptance checks. Historical setup notes have been replaced to avoid conflicting old rules.
 
-Use the existing production Worker, D1 database and SMTP/admin settings. Keep the existing bookings and Case ID sequence. Deploy `dist/server` and its configured `dist/client` assets together. Regenerate `dist/server/wrangler.cloudflare.json` using `scripts/configure-cloudflare.mjs` with your real existing D1 UUID and Worker name before applying additive migrations and deploying.
-
-This document replaces historical setup notes whose scheduling and email examples predated the current saved source.
+Do not upload only static files. Do not reset or replace the existing production database. The prebuilt base D1 UUID is a placeholder; configure the existing production UUID with `scripts/configure-cloudflare.mjs` before publishing.

@@ -57,7 +57,7 @@ export async function adminMonth(month:string){if(!/^\d{4}-(0[1-9]|1[0-2])$/.tes
 
 export async function adminBookingList(date:string){
  if(!validDate(date))throw new BookingError('Please select a valid date.',400);
- const db=database();await ensureAppointmentTypes(db);
- const rows=await db.prepare('SELECT b.id,b.minute,b.kind,t.appointment_type FROM bookings b LEFT JOIN booking_appointment_types t ON t.booking_id=b.id WHERE b.date=? AND b.active=1 ORDER BY b.minute,b.id').bind(date).all<{id:string;minute:number;kind:string;appointment_type:string|null}>();
- return {date,bookings:rows.results.map(row=>({id:row.id,time:timeLabel(row.minute),type:row.kind==='contact'?'Free Consult':row.appointment_type||'Appointment'}))};
+ const db=database();await ensureAppointmentTypes(db);await ensureCaseDisplayReferences(db);
+ const rows=await db.prepare('SELECT b.id,b.minute,b.kind,t.appointment_type,COALESCE(i.reference,r.reference) AS case_reference FROM bookings b LEFT JOIN booking_appointment_types t ON t.booking_id=b.id LEFT JOIN booking_references r ON r.booking_id=b.id LEFT JOIN booking_case_inputs i ON i.booking_id=b.id WHERE b.date=? AND b.active=1 ORDER BY b.minute,b.id').bind(date).all<{id:string;minute:number;kind:string;appointment_type:string|null;case_reference:string|null}>();
+ return {date,bookings:rows.results.map(row=>({id:row.id,time:timeLabel(row.minute),type:row.kind==='contact'?'Free Consult':row.appointment_type||'Appointment',caseReference:row.case_reference||''}))};
 }

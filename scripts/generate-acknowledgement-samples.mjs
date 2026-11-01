@@ -15,7 +15,7 @@ const {createAppointmentPdfBlob}=await import(inline('app/lib/appointment-pdf.ts
 fs.mkdirSync(output,{recursive:true});
 for(const [filename,details]of [
  ['Appointment-Acknowledgement-Sample.pdf',{name:'Sample Client',age:'35','booking id':'120-1026-MU','contact methods':'Google Meet','contact_Google Meet':'Meeting link will be provided by us','Google Meet WhatsApp or email':'sample@example.com','appointment type':'New Appointment (1 hour session)','appointment date':'5 Nov 2026','appointment time (Indian Time)':'7:30 PM'}],
- ['Apt-Acknowledgement-Sample.pdf',{name:'Sample Follow-up Client',age:'35','booking id':'121-1026-SA','contact methods':'WhatsApp',contact_WhatsApp:'+91 90000 00000','appointment type':'Follow-up (Clarification session, 10 minutes)','appointment date':'6 Nov 2026','appointment time (Indian Time)':'10:30 AM'}]
+ ['Apt-Acknowledgement-Sample.pdf',{name:'Sample Follow-up Client',age:'35','booking id':'121-1026-SA','contact methods':'WhatsApp',contact_WhatsApp:'+91 90000 00000','appointment type':'Follow-up (Clarifications - 10 min)','appointment date':'6 Nov 2026','appointment time (Indian Time)':'10:30 AM'}]
 ]){fs.writeFileSync(path.join(output,filename),Buffer.from(await createAppointmentPdfBlob(details).arrayBuffer()));console.log(filename);}
 const {createPaymentReceiptPdf}=await import(inline('app/lib/payment-receipt-pdf.ts'));
 const receipt={receiptNo:'26-27/0001',receiptDate:'2026-10-31',clientName:'Sample Client',caseId:'120-1026-MU',service:'Online Counselling',session:'New Appointment (1 hour session)',sessionDate:'2026-11-05',paymentDate:'2026-10-31',paymentMethod:'Google Pay',transactionReference:'SAMPLE-TRANSACTION-12345',amount:'990.00'};

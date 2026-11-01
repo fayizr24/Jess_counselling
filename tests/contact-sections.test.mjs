@@ -32,7 +32,7 @@ test('/free is a shared Contact form route excluded from sitemap and marked noin
 test('pending Contact/free recovery bypasses unavailable or empty slot selection and restores the original receipt',withFields(async()=>{
  for(const staff of [false,true]){localStorage.removeItem('jess-counselling:contact:last-successful-day');let recovered=0;
  const f=fixture({},null,async()=>assert.fail('Recovery must not submit another booking'),staff,(form,finish,onStatus,onBusy)=>({pending:{key:'original'},hasPending:()=>true,complete:()=>{},recover:async()=>{recovered++;onBusy(true);finish(new FormData(event().currentTarget),{bookingId:'original',bookingReference:'150-1026-CL',warning:'Email unconfirmed'},Date.now());onBusy(false);}}));
- assert.equal(button(f.nodes).props.disabled,true);const check=f.nodes.find(n=>n.type==='button'&&n.children.includes('Check booking status'));assert.ok(check);await f.nodes.find(n=>n.type==='form').props.onSubmit(event());assert.equal(recovered,1);assert.equal(f.state[3].bookingId,'150-1026-CL');assert.equal(f.state[14],null);assert.equal(f.state[12],!staff);
+ assert.equal(button(f.nodes).props.disabled,true);const check=f.nodes.find(n=>n.type==='button'&&n.children.includes('Check booking status'));assert.equal(!!check,false,'Manual recovery button is hidden on Contact and free');await f.nodes.find(n=>n.type==='form').props.onSubmit(event());assert.equal(recovered,1);assert.equal(f.state[3].bookingId,'150-1026-CL');assert.equal(f.state[14],null);assert.equal(f.state[12],!staff);
  }
 }));
 
