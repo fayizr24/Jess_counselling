@@ -19,7 +19,7 @@ export function createContactAcknowledgementData(form:FormData,bookingId=""){
   };
 }
 
-export function ContactAcknowledgement({details}:{details:ReturnType<typeof createContactAcknowledgementData>}){
+export function ContactAcknowledgement({details,showContactName=false}:{details:ReturnType<typeof createContactAcknowledgementData>;showContactName?:boolean}){
   const box=useRef<HTMLElement|null>(null),exporting=useRef(false),snapshotDialog=useRef<HTMLDialogElement|null>(null);
   const exporterRef=useRef<typeof import("../lib/contact-acknowledgement-export")|null>(null);
   const [busy,setBusy]=useState<"pdf"|"png"|null>(null),[exportError,setExportError]=useState("");
@@ -66,14 +66,16 @@ export function ContactAcknowledgement({details}:{details:ReturnType<typeof crea
       <dt>Contact method</dt><dd>{contact.method}</dd>
       <dt>Contact details</dt><dd>{contact.detail}</dd>
     </div>)}</dl>
-    <p className="contact-acknowledgement-reschedule" style={{color:"#0057ff"}}>For rescheduling or cancellation, please contact us by email or WhatsApp.</p>
+    <p className="contact-acknowledgement-reschedule" style={{color:"#0057ff"}}>{showContactName?"For rescheduling or cancellation, please contact us via WhatsApp, Instagram or email.":"For rescheduling or cancellation, please contact us by email or WhatsApp."}</p>
     <div className="contact-acknowledgement-actions" data-ack-export-ignore="true">
       <button type="button" disabled={busy!==null} aria-busy={busy==="pdf"} onClick={()=>exportReceipt("pdf")}><FileText size={18}/>{busy==="pdf"?"Preparing PDF…":"View PDF"}</button>
       <button type="button" disabled={busy!==null} aria-busy={busy==="png"} onClick={()=>exportReceipt("png")}><Camera size={18}/>{busy==="png"?"Preparing snapshot…":"Save Snapshot"}</button>
     </div>
     <div className="contact-acknowledgement-contact" aria-label="Contact Jess Counselling">
+      {showContactName&&<strong className="contact-acknowledgement-contact-name">Jess Counselling</strong>}
       <div><strong>Email</strong><a href="mailto:hello@jesscounselling.online">hello@jesscounselling.online</a></div>
-      <div><strong>WhatsApp</strong><a href="https://wa.me/919895296274">+91 989 529 6274 <span className="contact-acknowledgement-whatsapp-note">(Text or recorded voice only)</span></a></div>
+      <div><strong>WhatsApp</strong><a href="https://wa.me/919895296274"><span className="contact-acknowledgement-phone-link">+91 989 529 6274</span> <span className="contact-acknowledgement-whatsapp-note">(Text or recorded voice only)</span></a></div>
+      {showContactName&&<div><strong>Instagram</strong><a href="https://www.instagram.com/jesscounselling/">@jesscounselling</a></div>}
     </div>
     <dialog ref={snapshotDialog} className="contact-snapshot-dialog" data-ack-export-ignore="true" aria-label="Save snapshot" onCancel={event=>{if(exporting.current)event.preventDefault();else{setSnapshotFile(null);setSnapshotMessage("");}}}>
       <h3>Save snapshot</h3>
